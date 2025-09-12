@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - '*'
-  release:
-    types: [created]
 
 jobs:
   build:
@@ -23,10 +21,8 @@ jobs:
       - run: yarn pack
 
   publish-npm:
-    if: github.event.release
     needs: build
     runs-on: ubuntu-24.04
-    environment: production
     permissions:
       contents: read
       id-token: write
@@ -38,18 +34,14 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - run: yarn
       - run: |
-          cd packages/rtn-hce-module-ios
-          yarn npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          echo begin yarnrc
+          cat .yarnrc.yml
+          echo end yarnrc
 
   publish-gpr:
-    if: github.event.release
     needs: build
     runs-on: ubuntu-24.04
-    environment: production
     permissions:
       contents: read
       packages: write
@@ -62,9 +54,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://npm.pkg.github.com
-      - run: yarn
       - run: |
-          cd packages/rtn-hce-module-ios
-          yarn npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
+          echo begin yarnrc
+          cat .yarnrc.yml
+          echo end yarnrc

@@ -8,12 +8,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.nfc.cardemulation.HostApduService;
+import android.nfc.cardemulation.PollingFrame;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import java.util.List;
 import java.util.Locale;
 
 import javax.crypto.SecretKey;
@@ -48,6 +51,12 @@ public class HCEService extends HostApduService {
         getApplicationContext().sendBroadcast(intent);
 
         return null;
+    }
+
+    @Override
+    public void processPollingFrames(@NonNull List<PollingFrame> frames) {
+        super.processPollingFrames(frames);
+        Log.i(TAG, "Polling frames: " + frames.size());
     }
 
     @Override

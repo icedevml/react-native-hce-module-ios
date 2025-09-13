@@ -14,6 +14,8 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
+import java.util.Locale;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -30,8 +32,11 @@ public class HCEService extends HostApduService {
             String action = intent.getAction();
 
             if (action != null && action.equals(INTENT_SEND_R_APDU)) {
-                String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
-                sendResponseApdu(BinaryUtils.HexStringToByteArray(capdu));
+                String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
+                byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
+                Log.i(TAG, "Sending rapdu: " + BinaryUtils.ByteArrayToHexString(dec));
+                sendResponseApdu(dec);
+                //sendResponseApdu(new byte[] { (byte) 0xAA, (byte) 0xBB, (byte) 0x90, (byte) 0x00 });
             }
         }
     };

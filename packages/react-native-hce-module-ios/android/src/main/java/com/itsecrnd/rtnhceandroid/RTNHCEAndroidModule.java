@@ -134,7 +134,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
         Log.i(TAG, "Send broadcast.");
-        String encRapdu = AESGCMUtil.encryptData(encSecretKey, "EE9000");
+        String encRapdu = AESGCMUtil.encryptData(encSecretKey, rapdu);
 
         Intent intent = new Intent(INTENT_SEND_R_APDU);
         intent.setPackage(getReactApplicationContext().getPackageName());

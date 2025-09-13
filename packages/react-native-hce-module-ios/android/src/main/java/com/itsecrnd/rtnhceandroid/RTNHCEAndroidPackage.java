@@ -30,7 +30,7 @@ public class RTNHCEAndroidPackage extends TurboReactPackage {
         return () -> {
             final Map<String, ReactModuleInfo> moduleInfos = new HashMap<>();
             moduleInfos.put(
-                    NAME,
+                    RTNHCEAndroidModule.NAME,
                     new ReactModuleInfo(
                             RTNHCEAndroidModule.NAME,
                             RTNHCEAndroidModule.NAME,

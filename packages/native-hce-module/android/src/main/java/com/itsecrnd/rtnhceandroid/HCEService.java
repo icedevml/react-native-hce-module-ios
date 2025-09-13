@@ -30,12 +30,20 @@ public class HCEService extends HostApduService {
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
+            try {
+                String action = intent.getAction();
 
-            if (action != null && action.equals(INTENT_SEND_R_APDU)) {
-                String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
-                byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
-                sendResponseApdu(dec);
+                if (action != null) {
+                    AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("auth"));
+
+                    if (action.equals(INTENT_SEND_R_APDU)) {
+                        String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
+                        byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
+                        sendResponseApdu(dec);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to handle broadcast in HCEService.", e);
             }
         }
     };
@@ -46,6 +54,7 @@ public class HCEService extends HostApduService {
 
         Intent intent = new Intent(INTENT_RECEIVE_C_APDU);
         intent.setPackage(getApplicationContext().getPackageName());
+        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         intent.putExtra("capdu", capdu);
         getApplicationContext().sendBroadcast(intent);
 
@@ -54,10 +63,11 @@ public class HCEService extends HostApduService {
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "Starting service");
+        Log.d(TAG, "HCEService onCreate");
 
+        String prefsName = getApplicationContext().getPackageName() + ".nativehcemodule";
         String encKey = getApplicationContext()
-                .getSharedPreferences("RTNHCEAndroidModuleBroadcastEnc", Context.MODE_PRIVATE)
+                .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
                 .getString("encKey", "");
 
         if (encKey.isEmpty()) {
@@ -76,17 +86,19 @@ public class HCEService extends HostApduService {
 
         Intent intent = new Intent(INTENT_READER_DETECT);
         intent.setPackage(getApplicationContext().getPackageName());
+        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         getApplicationContext().sendBroadcast(intent);
     }
 
     @Override
     public void onDeactivated(int reason) {
-        Log.d(TAG, "Finishing service: " + reason);
+        Log.d(TAG, "HCEService onDeactivated: " + reason);
 
         getApplicationContext().unregisterReceiver(receiver);
 
         Intent intent = new Intent(INTENT_READER_LOST);
         intent.setPackage(getApplicationContext().getPackageName());
+        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         getApplicationContext().sendBroadcast(intent);
     }
 }

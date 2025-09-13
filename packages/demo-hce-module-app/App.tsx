@@ -7,10 +7,16 @@ import { Buffer } from 'buffer/';
 import NativeHCEModule, {HCEModuleEvent} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
 
 function App(): React.JSX.Element {
+  const [recentEventsList, setRecentEventsList] = React.useState<string[]>([]);
+
   React.useEffect(() => {
     NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
       try {
         console.log('received event', event);
+        setRecentEventsList((prevState) => {
+          const data = [...prevState, event.type + " " + event.arg];
+          return data.slice(-15);
+        });
 
         switch (event.type) {
           case 'readerDetected':
@@ -104,6 +110,8 @@ function App(): React.JSX.Element {
     );
   }
 
+  let recentEvents = recentEventsList.join('\n');
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeAreaView}>
@@ -116,6 +124,7 @@ function App(): React.JSX.Element {
           title="Acquire exclusive NFC access"
           onPress={doAcquireExclusiveNFC}
         />
+        <Text style={styles.text}>{recentEvents}</Text>
       </SafeAreaView>
     </SafeAreaProvider>
   );

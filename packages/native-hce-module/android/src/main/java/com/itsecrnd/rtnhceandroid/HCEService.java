@@ -1,5 +1,7 @@
 package com.itsecrnd.rtnhceandroid;
 
+import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_READER_DETECT;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_READER_LOST;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_RECEIVE_C_APDU;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_SEND_R_APDU;
 
@@ -8,15 +10,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.nfc.cardemulation.HostApduService;
-import android.nfc.cardemulation.PollingFrame;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import java.util.List;
 import java.util.Locale;
 
 import javax.crypto.SecretKey;
@@ -54,17 +53,8 @@ public class HCEService extends HostApduService {
     }
 
     @Override
-    public void processPollingFrames(@NonNull List<PollingFrame> frames) {
-        super.processPollingFrames(frames);
-        Log.i(TAG, "Polling frames: " + frames.size());
-    }
-
-    @Override
     public void onCreate() {
         Log.d(TAG, "Starting service");
-
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(INTENT_SEND_R_APDU);
 
         String encKey = getApplicationContext()
                 .getSharedPreferences("RTNHCEAndroidModuleBroadcastEnc", Context.MODE_PRIVATE)
@@ -80,7 +70,13 @@ public class HCEService extends HostApduService {
         /*
          * See a comment about registerReceiver() in RTNHCEAndroidModule.
          */
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(INTENT_SEND_R_APDU);
         getApplicationContext().registerReceiver(receiver, filter, RECEIVER_EXPORTED);
+
+        Intent intent = new Intent(INTENT_READER_DETECT);
+        intent.setPackage(getApplicationContext().getPackageName());
+        getApplicationContext().sendBroadcast(intent);
     }
 
     @Override
@@ -88,5 +84,9 @@ public class HCEService extends HostApduService {
         Log.d(TAG, "Finishing service: " + reason);
 
         getApplicationContext().unregisterReceiver(receiver);
+
+        Intent intent = new Intent(INTENT_READER_LOST);
+        intent.setPackage(getApplicationContext().getPackageName());
+        getApplicationContext().sendBroadcast(intent);
     }
 }

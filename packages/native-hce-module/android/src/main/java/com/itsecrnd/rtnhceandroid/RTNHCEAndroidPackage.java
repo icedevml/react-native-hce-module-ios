@@ -40,7 +40,7 @@ public class RTNHCEAndroidPackage extends TurboReactPackage {
                             true, // hasConstants
                             false, // isCxxModule
                             true // isTurboModule
-            ));
+                    ));
             return moduleInfos;
         };
     }

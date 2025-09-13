@@ -94,6 +94,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(INTENT_RECEIVE_C_APDU);
+        filter.addAction(INTENT_READER_DETECT);
+        filter.addAction(INTENT_READER_LOST);
 
         /*
          * FIXME It seems like those intents are not going through across this module and HostApduService.

@@ -98,5 +98,65 @@ Install `@icedevml/react-native-host-card-emulation` package within your React N
 
 ## API Specification & Demo App
 
-* [module API (declarations)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/native-hce-module/js/NativeHCEModule.ts)
-* [demo app's code (example usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-app/App.tsx)
+This module provides a uniform low-level HCE API for both mobile platforms.
+
+1. Subscribe to the event stream (there is a single global event stream for the entire module):
+   ```typescript
+   NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
+       switch (event.type) {
+           /* ... your handler here ... */
+       }
+   });
+   ```
+2. When user indicates that he wants to perform the HCE action, call the following function from the button's onClick routine:
+   ```typescript
+   await NativeHCEModule?.beginSession();
+   ```
+   This will emit `sessionStarted` event on both platforms. You can start the HCE straight from that event:
+   ```typescript
+   // inside NativeHCEModule?.onEvent handler's switch
+   case 'sessionStarted':
+       NativeHCEModule?.setSessionAlertMessage('Tap towards the reader');  // only for iOS, no-op in Android
+       await NativeHCEModule?.startHCE();
+       break;
+   ```
+3. Calling `startHCE()` causes:
+   * iOS: Launch of the NFC scan system UI. The smartphone will start listening for C-APDUs from the readers right after that UI appears on screen. The `readerDetected` event will be emitted as soon as the NFC tag field presence is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
+   * Android: No user interface appears (you have to implement it on your own scanning UI, within your app). The `readerDetected` event will be emitted as soon as the first matching SELECT AID command is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
+4. Optionally, you can handle `readerDetected` and `readerDeselected events to enhance user's experience.
+   ```typescript
+   // inside NativeHCEModule?.onEvent handler's switch
+   case 'readerDetected':
+       NativeHCEModule?.setSessionAlertMessage('Reader detected');  // only for iOS, no-op in Android
+       break;
+
+    case 'readerDeselected':
+        NativeHCEModule?.setSessionAlertMessage('Lost reader');  // only for iOS, no-op in Android
+        break;
+   ```
+5. Handle CAPDU
+   ```typescript
+   // inside NativeHCEModule?.onEvent handler's switch
+   case 'received':
+       NativeHCEModule?.setSessionAlertMessage('Keep holding the tag');
+
+       const capdu = Buffer.from(event.arg!, 'hex');
+       console.log('Received C-APDU, capdu.toString('hex'));
+   
+       // let's say we always want to respond with [0x0A] + Status Word 0x9000
+       await NativeHCEModule?.respondAPDU(Buffer.from([0x0A, 0x90, 0x00], "hex"));
+       break;
+   ```
+6. (iOS) Optionally, if you need to utilize `NFCPresentmentIntentAssertion` then at any time you can call:
+   ```typescript
+   NativeHCEModule?.acquireExclusiveNFC();
+   ```
+   Which will throw an exception if the presentment intent assertion was already acquired and is still valid 
+   (usually 15 seconds) or if the cooldown period for acquiring new assertion was not yet expired (usually also 15 seconds).
+
+> [!NOTE]
+> See [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-app/App.tsx) example for more insignt about the library's API.
+
+> [!NOTE]
+> Raw native module's API specification is available in [packages/native-hce-module/js/NativeHCEModule.ts](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/native-hce-module/js/NativeHCEModule.ts).
+> Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.

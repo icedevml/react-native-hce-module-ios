@@ -4,30 +4,28 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { Buffer } from 'buffer/';
 
-import NativeHCEModuleIOS, {
-  HCEModuleIOSEvent,
-} from '@icedevml/react-native-hce-module-ios/js/NativeHCEModule';
+import NativeHCEModule, {HCEModuleEvent} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
 
 function App(): React.JSX.Element {
   React.useEffect(() => {
-    NativeHCEModuleIOS?.onEvent(async (event: HCEModuleIOSEvent) => {
+    NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
       try {
         console.log('received event', event);
 
         switch (event.type) {
           case 'readerDetected':
-            NativeHCEModuleIOS?.setSessionAlertMessage('Reader detected');
+            NativeHCEModule?.setSessionAlertMessage('Reader detected');
             break;
 
           case 'readerDeselected':
-            NativeHCEModuleIOS?.setSessionAlertMessage('Lost reader');
+            NativeHCEModule?.setSessionAlertMessage('Lost reader');
             break;
 
           case 'sessionStarted':
-            NativeHCEModuleIOS?.setSessionAlertMessage(
+            NativeHCEModule?.setSessionAlertMessage(
               'Tap towards the reader',
             );
-            await NativeHCEModuleIOS?.startHCE();
+            await NativeHCEModule?.startHCE();
             break;
 
           case 'sessionInvalidated':
@@ -51,24 +49,24 @@ function App(): React.JSX.Element {
             console.log('Received C-APDU: ', capdu.toString('hex'));
             console.log('Sending R-APDU: ', rapdu.toString('hex'));
 
-            await NativeHCEModuleIOS?.respondAPDU(rapdu.toString('hex'));
+            await NativeHCEModule?.respondAPDU(rapdu.toString('hex'));
 
             if (capdu[0] === 0xb0 && capdu[1] === 0xff) {
               // signal success if the C-APDU started with B0FF...
-              NativeHCEModuleIOS?.setSessionAlertMessage(
+              NativeHCEModule?.setSessionAlertMessage(
                 'Final command B0FF - OK',
               );
-              await NativeHCEModuleIOS?.stopHCE('success');
-              NativeHCEModuleIOS?.invalidateSession();
+              await NativeHCEModule?.stopHCE('success');
+              NativeHCEModule?.invalidateSession();
             } else if (capdu[0] === 0xb0 && capdu[1] === 0xee) {
               // signal failure if the C-APDU started with B0EE...
-              NativeHCEModuleIOS?.setSessionAlertMessage(
+              NativeHCEModule?.setSessionAlertMessage(
                 'Final command B0EE - ERROR',
               );
-              await NativeHCEModuleIOS?.stopHCE('failure');
-              NativeHCEModuleIOS?.invalidateSession();
+              await NativeHCEModule?.stopHCE('failure');
+              NativeHCEModule?.invalidateSession();
             } else {
-              NativeHCEModuleIOS?.setSessionAlertMessage(
+              NativeHCEModule?.setSessionAlertMessage(
                 'Received ' + capdu.slice(0, 2).toString('hex') + '...',
               );
             }
@@ -82,7 +80,7 @@ function App(): React.JSX.Element {
 
   async function doBeginSession() {
     try {
-      await NativeHCEModuleIOS?.beginSession();
+      await NativeHCEModule?.beginSession();
     } catch (error) {
       console.error('beginSession err', error);
       Alert.alert('Error', 'Failed to begin NFC session: ' + error);
@@ -92,7 +90,7 @@ function App(): React.JSX.Element {
 
   async function doAcquireExclusiveNFC() {
     try {
-      await NativeHCEModuleIOS?.acquireExclusiveNFC();
+      await NativeHCEModule?.acquireExclusiveNFC();
     } catch (error) {
       console.error('acquireExclusiveNFC err', error);
       Alert.alert('Error', 'Failed to acquire exclusive NFC access: ' + error);
@@ -109,9 +107,9 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeAreaView}>
-        <Text style={styles.text}>Demo App for HCEModuleIOS</Text>
+        <Text style={styles.text}>Demo App for Native HCE Module</Text>
         <Text style={styles.text}>
-          GitHub: icedevml/react-native-hce-module-ios
+          GitHub: icedevml/react-native-host-card-emulation
         </Text>
         <Button title="Begin HCE session&emulation" onPress={doBeginSession} />
         <Button

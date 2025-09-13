@@ -30,9 +30,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public static final String TAG = "RTNHCEAndroidModule";
     public static final String NAME = "NativeHCEModule";
 
+    private volatile boolean sessionRunning;
+    private volatile boolean hceRunning;
+    private volatile boolean hceBreakConnection;
     private final SecretKey encSecretKey;
-    private boolean sessionOpen;
-    private boolean hceRunning;
 
     private void sendEvent(final String type, final String arg) {
         WritableMap map = Arguments.createMap();
@@ -53,7 +54,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
                     if (action.equals(ACTION_RECEIVE_C_APDU)) {
                         String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
 
-                        if (sessionOpen) {
+                        if (!hceBreakConnection) {
                             sendEvent("received", capdu);
                         } else {
                             Intent rintent = new Intent(ACTION_SEND_R_APDU);
@@ -65,7 +66,12 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
                     } else if (action.equals(ACTION_READER_DETECT)) {
                         sendEvent("readerDetected", "");
                     } else if (action.equals(ACTION_READER_LOST)) {
-                        sendEvent("readerDeselected", "");
+                        if (!hceBreakConnection) {
+                            // only if we haven't send a fake disconnect event already
+                            sendEvent("readerDeselected", "");
+                        }
+
+                        hceBreakConnection = false;
                     }
                 }
             } catch (Exception e) {
@@ -76,11 +82,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     RTNHCEAndroidModule(ReactApplicationContext context) {
         super(context);
-
-        this.sessionOpen = false;
-        this.hceRunning = false;
-
         String encKey;
+        this.sessionRunning = false;
+        this.hceRunning = false;
+        this.hceBreakConnection = false;
 
         try {
             encSecretKey = AESGCMUtil.generateKey();
@@ -116,9 +121,6 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void invalidate() {
-        this.sessionOpen = false;
-        this.hceRunning = false;
-
         getReactApplicationContext().getApplicationContext().unregisterReceiver(receiver);
     }
 
@@ -142,19 +144,18 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public boolean isExclusiveNFC() {
-        // unsupported on Android
+        // unsupported on Android, always false
         return false;
     }
 
     @Override
     public void beginSession(Promise promise) {
-        if (this.sessionOpen) {
-            promise.reject("err_card_session_exists", "Session already exists.");
-        } else {
-            this.sessionOpen = true;
-            this.hceRunning = false;
-            promise.resolve(null);
+        if (!this.sessionRunning) {
+            this.sessionRunning = true;
             sendEvent("sessionStarted", "");
+            promise.resolve(null);
+        } else {
+            promise.reject("err_card_session_exists", "Session already exists.");
         }
     }
 
@@ -165,43 +166,42 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void invalidateSession() {
-        this.sessionOpen = false;
-        this.hceRunning = false;
-        sendEvent("sessionInvalidated", "");
+        if (this.sessionRunning) {
+            this.sessionRunning = false;
+            sendEvent("sessionInvalidated", "userInvalidated");
+        }
     }
 
     @Override
     public boolean isSessionRunning() {
-        return this.sessionOpen;
+        return this.sessionRunning;
     }
 
     @Override
     public void startHCE(Promise promise) {
-        if (this.sessionOpen) {
-            this.hceRunning = true;
-            promise.resolve(null);
-        } else {
-            promise.reject("err_no_card_session", "Session is not running.");
+        if (this.hceRunning) {
+            promise.reject("err_start_emulation", "Error trying to start emulation. Emulation already started.");
+            return;
         }
+
+        this.hceRunning = true;
+        promise.resolve(null);
     }
 
     @Override
     public void stopHCE(String status, Promise promise) {
-        // status is ignored on Android
-        if (this.sessionOpen) {
+        if (this.hceRunning) {
+            this.hceBreakConnection = true;
             this.hceRunning = false;
-            promise.resolve(null);
-        } else {
-            promise.reject("err_no_card_session", "Session is not running.");
+
+            sendEvent("readerDeselected", "");
         }
+
+        promise.resolve(null);
     }
 
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
-        if (!this.sessionOpen) {
-            return;
-        }
-
         String encRapdu = AESGCMUtil.encryptData(encSecretKey, rapdu);
 
         Intent intent = new Intent(ACTION_SEND_R_APDU);
@@ -215,6 +215,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void isHCERunning(Promise promise) {
-        promise.resolve(hceRunning);
+        // unsupported on Android, always true
+        promise.resolve(true);
     }
 }

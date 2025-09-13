@@ -6,7 +6,7 @@ import { Buffer } from 'buffer/';
 
 import NativeHCEModuleIOS, {
   HCEModuleIOSEvent,
-} from '@icedevml/react-native-hce-module-ios/js/NativeHCEModuleIOS';
+} from '@icedevml/react-native-hce-module-ios/js/NativeHCEModule';
 
 function App(): React.JSX.Element {
   React.useEffect(() => {

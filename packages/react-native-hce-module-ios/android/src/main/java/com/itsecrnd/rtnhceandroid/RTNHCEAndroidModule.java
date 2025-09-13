@@ -15,8 +15,10 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.WritableMap;
 
 import javax.crypto.SecretKey;
 
@@ -36,6 +38,11 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             if (action != null && action.equals(INTENT_RECEIVE_C_APDU)) {
                 String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
                 Log.i(TAG, "Received C-APDU: " + capdu);
+
+                WritableMap map = Arguments.createMap();
+                map.putString("type", "received");
+                map.putString("arg", capdu);
+                emitOnEvent(map);
             }
         }
     };
@@ -86,13 +93,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void acquireExclusiveNFC(Promise promise) {
-        Log.i(TAG, "Send broadcast.");
-        String rapdu = AESGCMUtil.encryptData(encSecretKey, "EE9000");
 
-        Intent intent = new Intent(INTENT_SEND_R_APDU);
-        intent.setPackage(getReactApplicationContext().getPackageName());
-        intent.putExtra("rapdu", rapdu);
-        getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
     }
 
     @Override
@@ -132,7 +133,16 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
+        Log.i(TAG, "Send broadcast.");
+        String encRapdu = AESGCMUtil.encryptData(encSecretKey, "EE9000");
 
+        Intent intent = new Intent(INTENT_SEND_R_APDU);
+        intent.setPackage(getReactApplicationContext().getPackageName());
+        intent.putExtra("rapdu", encRapdu);
+        getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
+
+        // TODO resolve on next broadcast?
+        promise.resolve(null);
     }
 
     @Override

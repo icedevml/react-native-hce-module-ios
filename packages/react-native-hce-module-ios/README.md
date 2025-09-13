@@ -13,3 +13,7 @@
 
 * [module API (declarations)](https://github.com/icedevml/react-native-hce-module-ios/blob/master/packages/react-native-hce-module-ios/js/NativeHCEModuleIOS.ts)
 * [demo app's code (example usage)](https://github.com/icedevml/react-native-hce-module-ios/blob/master/packages/demo-hce-module-ios-app/App.tsx)
+
+## Android Support
+
+This module doesn't support Android HCE functionality. See [react-native-hce](https://www.npmjs.com/package/react-native-hce) package for Android support.

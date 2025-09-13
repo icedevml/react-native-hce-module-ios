@@ -17,11 +17,6 @@ apply plugin: 'com.facebook.react'
 android {
     compileSdkVersion safeExtGet('compileSdkVersion', 33)
     namespace "com.itsecrnd.rtnhceandroid"
-    sourceSets {
-        main {
-            java.srcDirs += ['src']
-        }
-    }
 }
 
 repositories {

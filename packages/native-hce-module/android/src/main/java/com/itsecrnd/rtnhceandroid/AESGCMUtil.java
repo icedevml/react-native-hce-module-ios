@@ -2,6 +2,13 @@ package com.itsecrnd.rtnhceandroid;
 
 import android.annotation.SuppressLint;
 
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -9,13 +16,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
-
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.util.Base64;
 
 @SuppressLint("NewApi")
 public class AESGCMUtil {
@@ -49,7 +49,7 @@ public class AESGCMUtil {
             byte[] ciphertextBytes = cipher.doFinal(plaintextBytes);
 
             return Base64.getEncoder().encodeToString(iv) + ';' +
-                Base64.getEncoder().encodeToString(ciphertextBytes);
+                    Base64.getEncoder().encodeToString(ciphertextBytes);
         } catch (NoSuchPaddingException
                  | NoSuchAlgorithmException
                  | IllegalBlockSizeException

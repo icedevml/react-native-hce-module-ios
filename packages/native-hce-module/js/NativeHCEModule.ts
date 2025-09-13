@@ -1,7 +1,11 @@
 import type {TurboModule, CodegenTypes} from 'react-native';
 import {TurboModuleRegistry} from 'react-native';
 
-export type HCEModuleEventType = 'sessionStarted' | 'readerDetected' | 'readerDeselected' | 'received' | 'sessionInvalidated';
+export type HCEModuleEventType = 'sessionStarted'
+    | 'readerDetected'
+    | 'readerDeselected'
+    | 'received'
+    | 'sessionInvalidated';
 export type HCEModuleStopReason = 'success' | 'failure';
 
 export type HCEModuleEvent = {
@@ -12,7 +16,7 @@ export type HCEModuleEvent = {
 export interface Spec extends TurboModule {
   isPlatformSupported(): boolean;
 
-  acquireExclusiveNFC(): Promise<boolean>;
+  acquireExclusiveNFC(): Promise<void>;
   isExclusiveNFC(): boolean;
 
   beginSession(): Promise<void>;

@@ -33,12 +33,15 @@
     "react-native": "*"
   },
   "codegenConfig": {
-    "name": "RTNHCEModuleIOSSpec",
+    "name": "RTNHCEModuleSpec",
     "type": "modules",
     "jsSrcsDir": "js",
+    "android": {
+      "javaPackageName": "com.itsecrnd.rtnhceandroid"
+    },
     "ios": {
       "modulesProvider": {
-        "NativeHCEModuleIOS": "RTNHCEModuleIOS"
+        "NativeHCEModule": "RTNHCEModuleIOS"
       }
     }
   }

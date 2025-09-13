@@ -1,12 +1,16 @@
 import React from 'react';
-import {SafeAreaView, StyleSheet, Text, Button, Alert} from 'react-native';
-import {Buffer} from 'buffer/';
+import { Alert, Button, StyleSheet, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import NativeHCEModuleIOS from '@icedevml/react-native-hce-module-ios/js/NativeHCEModuleIOS';
+import { Buffer } from 'buffer/';
+
+import NativeHCEModuleIOS, {
+  HCEModuleIOSEvent,
+} from '@icedevml/react-native-hce-module-ios/js/NativeHCEModuleIOS';
 
 function App(): React.JSX.Element {
   React.useEffect(() => {
-    NativeHCEModuleIOS?.onEvent(async event => {
+    NativeHCEModuleIOS?.onEvent(async (event: HCEModuleIOSEvent) => {
       try {
         console.log('received event', event);
 
@@ -20,42 +24,53 @@ function App(): React.JSX.Element {
             break;
 
           case 'sessionStarted':
-            NativeHCEModuleIOS?.setSessionAlertMessage('Tap towards the reader');
+            NativeHCEModuleIOS?.setSessionAlertMessage(
+              'Tap towards the reader',
+            );
             await NativeHCEModuleIOS?.startHCE();
             break;
 
           case 'sessionInvalidated':
-            if (event.arg === "maxSessionDurationReached") {
-              Alert.alert("Information", "Session has timed out and thus was invalidated " +
-                "by the operating system.");
+            if (event.arg === 'maxSessionDurationReached') {
+              Alert.alert(
+                'Information',
+                'Session has timed out and thus was invalidated ' +
+                  'by the operating system.',
+              );
             }
             break;
 
           case 'received':
-            const capdu = Buffer.from(event.arg!, "hex");
+            const capdu = Buffer.from(event.arg!, 'hex');
             // for the demo, we just respond with the reversed C-APDU and success status 9000
             const rapdu = Buffer.concat([
-              Buffer.from(event.arg!, "hex").reverse(),
-              Buffer.from([0x90, 0x00])
+              Buffer.from(event.arg!, 'hex').reverse(),
+              Buffer.from([0x90, 0x00]),
             ]);
 
-            console.log("Received C-APDU: ", capdu.toString("hex"));
-            console.log("Sending R-APDU: ", rapdu.toString("hex"));
+            console.log('Received C-APDU: ', capdu.toString('hex'));
+            console.log('Sending R-APDU: ', rapdu.toString('hex'));
 
-            await NativeHCEModuleIOS?.respondAPDU(rapdu.toString("hex"));
+            await NativeHCEModuleIOS?.respondAPDU(rapdu.toString('hex'));
 
-            if (capdu[0] === 0xB0 && capdu[1] === 0xFF) {
+            if (capdu[0] === 0xb0 && capdu[1] === 0xff) {
               // signal success if the C-APDU started with B0FF...
-              NativeHCEModuleIOS?.setSessionAlertMessage('Final command B0FF - OK');
+              NativeHCEModuleIOS?.setSessionAlertMessage(
+                'Final command B0FF - OK',
+              );
               await NativeHCEModuleIOS?.stopHCE('success');
               NativeHCEModuleIOS?.invalidateSession();
-            } else if (capdu[0] === 0xB0 && capdu[1] === 0xEE) {
+            } else if (capdu[0] === 0xb0 && capdu[1] === 0xee) {
               // signal failure if the C-APDU started with B0EE...
-              NativeHCEModuleIOS?.setSessionAlertMessage('Final command B0EE - ERROR');
+              NativeHCEModuleIOS?.setSessionAlertMessage(
+                'Final command B0EE - ERROR',
+              );
               await NativeHCEModuleIOS?.stopHCE('failure');
               NativeHCEModuleIOS?.invalidateSession();
             } else {
-              NativeHCEModuleIOS?.setSessionAlertMessage('Received ' + capdu.slice(0, 2).toString("hex") + '...');
+              NativeHCEModuleIOS?.setSessionAlertMessage(
+                'Received ' + capdu.slice(0, 2).toString('hex') + '...',
+              );
             }
             break;
         }
@@ -70,7 +85,7 @@ function App(): React.JSX.Element {
       await NativeHCEModuleIOS?.beginSession();
     } catch (error) {
       console.error('beginSession err', error);
-      Alert.alert('Error', 'Failed to begin NFC session: ' + error)
+      Alert.alert('Error', 'Failed to begin NFC session: ' + error);
       return;
     }
   }
@@ -81,27 +96,42 @@ function App(): React.JSX.Element {
     } catch (error) {
       console.error('acquireExclusiveNFC err', error);
       Alert.alert('Error', 'Failed to acquire exclusive NFC access: ' + error);
-      return
+      return;
     }
 
-    Alert.alert('Information', 'Acquired exclusive NFC access for 15 seconds. ' +
-        'Operating system\'s services (like background tag reading) are disabled within that period.');
+    Alert.alert(
+      'Information',
+      'Acquired exclusive NFC access for 15 seconds. ' +
+        "Operating system's services (like background tag reading) are disabled within that period.",
+    );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <Text style={styles.text}>Demo App for HCEModuleIOS</Text>
-      <Text style={styles.text}>GitHub: icedevml/react-native-hce-module-ios</Text>
-      <Button title="Begin HCE session&emulation" onPress={doBeginSession} />
-      <Button title="Acquire exclusive NFC access" onPress={doAcquireExclusiveNFC} />
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeAreaView}>
+        <Text style={styles.text}>Demo App for HCEModuleIOS</Text>
+        <Text style={styles.text}>
+          GitHub: icedevml/react-native-hce-module-ios
+        </Text>
+        <Button title="Begin HCE session&emulation" onPress={doBeginSession} />
+        <Button
+          title="Acquire exclusive NFC access"
+          onPress={doAcquireExclusiveNFC}
+        />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  safeAreaView: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
   text: {
     margin: 10,
     fontSize: 20,
+    color: 'black',
   },
   textInput: {
     margin: 10,

@@ -47,3 +47,7 @@
     </plist>
     ```
 7. Launch the application through XCode.
+
+## Module API
+
+See [package documentation](https://github.com/icedevml/react-native-hce-module-ios/tree/master/packages/react-native-hce-module-ios) for API and usage documentation.

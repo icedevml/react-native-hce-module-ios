@@ -1550,7 +1550,7 @@ __metadata:
     react: "npm:19.1.0"
     react-native: "npm:0.81.4"
     react-native-buffer: "npm:^6.0.4"
-    react-native-safe-area-context: "npm:^5.5.2"
+    react-native-safe-area-context: "npm:^5.6.1"
     react-test-renderer: "npm:19.1.0"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -7589,7 +7589,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-safe-area-context@npm:^5.5.2":
+"react-native-safe-area-context@npm:^5.6.1":
   version: 5.6.1
   resolution: "react-native-safe-area-context@npm:5.6.1"
   peerDependencies:

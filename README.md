@@ -11,8 +11,8 @@
 
 ## Contents of this repository
 
-* `packages/rtn-hce-module-ios` - React Native Turbo Module (library)
-* `packages/demo-hce-module-ios-app` - Demo React Native Application (module consumer)
+* `packages/native-hce-module` - React Native Turbo Module (library)
+* `packages/demo-hce-module-app` - Demo React Native Application (module consumer)
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@
 
 1. Clone this repository.
 2. Run `yarn` in the repository root in order to install all dependencies.
-3. Navigate to `packages/demo-hce-module-ios-app/ios` subdirectory and run `bundle install && bundle exec pod install`.
+3. Navigate to `packages/demo-hce-module-app/ios` subdirectory and run `bundle install && bundle exec pod install`.
 4. Open `packages/demo-hce-modules-ios-app/ios/DemoHCEModuleIOSApp.xcworkspace` with XCode.
 5. In "Signing & Capabilities" set up the proper signing team and bundle identifier.
 6. Add Host Card Emulation (HCE) capability either through XCode (by clicking "+ Capability") or manually in the `DemoHCEModuleIOSApp.entitlements` file:

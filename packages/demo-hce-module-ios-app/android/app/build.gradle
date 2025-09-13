@@ -119,9 +119,3 @@ dependencies {
         implementation jscFlavor
     }
 }
-
-//sourceSets {
-//    main {
-//        java.srcDirs += ['C:\\Users\\mq\\rnhce\\packages\\react-native-hce-module-ios\\android\\src\\main\\java']
-//    }
-//}

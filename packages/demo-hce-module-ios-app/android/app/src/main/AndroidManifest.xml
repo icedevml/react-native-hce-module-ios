@@ -29,9 +29,9 @@
       <service
         android:name="com.itsecrnd.rtnhceandroid.HCEService"
         android:exported="true"
-        android:enabled="false"
+        android:enabled="true"
         android:permission="android.permission.BIND_NFC_SERVICE" >
-        <intent-filter>
+        <intent-filter><!-- TODO android:enabled = false and enable programatically -->
           <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
           <category android:name="android.intent.category.DEFAULT"/>
         </intent-filter>

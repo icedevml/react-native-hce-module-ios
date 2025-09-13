@@ -1,6 +1,6 @@
 {
   "name": "@icedevml/react-native-hce-module-ios",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Host Card Emulation (HCE) React Native Turbo Module for iOS platform.",
   "react-native": "js/index",
   "source": "js/index",

@@ -21,22 +21,19 @@ import javax.crypto.spec.SecretKeySpec;
 
 @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
 public class HCEService extends HostApduService {
-    private static final String TAG = "CardService";
+    private static final String TAG = "HCEService";
 
     private SecretKey encSecretKey;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i(TAG, "Received broadcast in HCEService.");
             String action = intent.getAction();
 
             if (action != null && action.equals(INTENT_SEND_R_APDU)) {
                 String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
                 byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
-                Log.i(TAG, "Sending rapdu: " + BinaryUtils.ByteArrayToHexString(dec));
                 sendResponseApdu(dec);
-                //sendResponseApdu(new byte[] { (byte) 0xAA, (byte) 0xBB, (byte) 0x90, (byte) 0x00 });
             }
         }
     };

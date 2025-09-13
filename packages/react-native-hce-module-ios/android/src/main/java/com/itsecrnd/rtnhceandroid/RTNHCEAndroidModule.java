@@ -27,17 +27,15 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public static final String TAG = "RTNHCEAndroidModule";
     public static final String NAME = "NativeHCEModule";
 
-    private SecretKey encSecretKey = null;
+    private final SecretKey encSecretKey;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i(TAG, "Received broadcast in RTNHCEAndroidModule.");
             String action = intent.getAction();
 
             if (action != null && action.equals(INTENT_RECEIVE_C_APDU)) {
                 String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
-                Log.i(TAG, "Received C-APDU: " + capdu);
 
                 WritableMap map = Arguments.createMap();
                 map.putString("type", "received");
@@ -88,12 +86,12 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public boolean isPlatformSupported() {
-        return false;
+        return true;
     }
 
     @Override
     public void acquireExclusiveNFC(Promise promise) {
-
+        promise.resolve(null);
     }
 
     @Override
@@ -103,7 +101,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void beginSession(Promise promise) {
-
+        promise.resolve(null);
     }
 
     @Override
@@ -118,22 +116,21 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public boolean isSessionRunning() {
-        return false;
+        return true;
     }
 
     @Override
     public void startHCE(Promise promise) {
-
+        promise.resolve(null);
     }
 
     @Override
     public void stopHCE(String status, Promise promise) {
-
+        promise.resolve(null);
     }
 
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
-        Log.i(TAG, "Send broadcast.");
         String encRapdu = AESGCMUtil.encryptData(encSecretKey, rapdu);
 
         Intent intent = new Intent(INTENT_SEND_R_APDU);
@@ -141,12 +138,11 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         intent.putExtra("rapdu", encRapdu);
         getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
 
-        // TODO resolve on next broadcast?
         promise.resolve(null);
     }
 
     @Override
     public void isHCERunning(Promise promise) {
-
+        promise.resolve(true);
     }
 }

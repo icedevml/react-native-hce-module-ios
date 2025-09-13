@@ -2,21 +2,30 @@ package com.itsecrnd.rtnhceandroid;
 
 import static android.content.Context.RECEIVER_EXPORTED;
 
-import android.annotation.SuppressLint;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_RECEIVE_C_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_SEND_R_APDU;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 
+import javax.crypto.SecretKey;
+
+@RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
 public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public static final String TAG = "RTNHCEAndroidModule";
     public static final String NAME = "NativeHCEModule";
+
+    private SecretKey encSecretKey = null;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -24,21 +33,44 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             Log.i(TAG, "Received broadcast in RTNHCEAndroidModule.");
             String action = intent.getAction();
 
-            if (action != null && action.equals("com.itsecrnd.rtnhceandroid.sendcommandapdu")) {
-                Log.i(TAG, "Received C-APDU: " + intent.getStringExtra("capdu"));
+            if (action != null && action.equals(INTENT_RECEIVE_C_APDU)) {
+                String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
+                Log.i(TAG, "Received C-APDU: " + capdu);
             }
         }
     };
 
-    @SuppressLint("NewApi")  // TODO remove
     RTNHCEAndroidModule(ReactApplicationContext context) {
         super(context);
+        String encKey;
+
+        try {
+            encSecretKey = AESGCMUtil.generateKey();
+            encKey = BinaryUtils.ByteArrayToHexString(encSecretKey.getEncoded());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate encryption key.", e);
+        }
+
+        getReactApplicationContext()
+                .getSharedPreferences("RTNHCEAndroidModuleBroadcastEnc", Context.MODE_PRIVATE)
+                .edit()
+                .putString("encKey", encKey)
+                .commit();
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction("com.itsecrnd.rtnhceandroid.sendcommandapdu");
-        getReactApplicationContext().getApplicationContext().registerReceiver(receiver, filter, RECEIVER_EXPORTED);
+        filter.addAction(INTENT_RECEIVE_C_APDU);
 
-        // TODO unregister receiver
+        /*
+         * FIXME It seems like those intents are not going through across this module and HostApduService.
+         * This happens even though those things are within the same application and package.
+         * It also seems like there is no way to bind HostApduService (or it's a skill issue).
+         *
+         * For now we will just encrypt&authenticate all messages using AES/GCM and use exported
+         * receivers. This is not a perfect solution but it is going to be secure and sufficient for now.
+         *
+         * If somebody knows a better way then any pull requests would be greatly appreciated.
+         */
+        getReactApplicationContext().getApplicationContext().registerReceiver(receiver, filter, RECEIVER_EXPORTED);
     }
 
     @Override
@@ -55,9 +87,12 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @Override
     public void acquireExclusiveNFC(Promise promise) {
         Log.i(TAG, "Send broadcast.");
-        Intent intent = new Intent("com.itsecrnd.rtnhceandroid.sendresponseapdu");
-        intent.putExtra("rapdu", "EE9000");
-        this.getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
+        String rapdu = AESGCMUtil.encryptData(encSecretKey, "EE9000");
+
+        Intent intent = new Intent(INTENT_SEND_R_APDU);
+        intent.setPackage(getReactApplicationContext().getPackageName());
+        intent.putExtra("rapdu", rapdu);
+        getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
     }
 
     @Override

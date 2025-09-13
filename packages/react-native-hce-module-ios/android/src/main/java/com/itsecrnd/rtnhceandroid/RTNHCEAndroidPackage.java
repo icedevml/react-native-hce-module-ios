@@ -1,6 +1,9 @@
 package com.itsecrnd.rtnhceandroid;
 
+import android.os.Build;
+
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.facebook.react.TurboReactPackage;
 import com.facebook.react.bridge.NativeModule;
@@ -11,6 +14,7 @@ import com.facebook.react.module.model.ReactModuleInfoProvider;
 import java.util.HashMap;
 import java.util.Map;
 
+@RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
 public class RTNHCEAndroidPackage extends TurboReactPackage {
     @Nullable
     @Override

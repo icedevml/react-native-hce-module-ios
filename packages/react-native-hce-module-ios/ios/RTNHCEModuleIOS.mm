@@ -31,7 +31,7 @@
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params {
-    return std::make_shared<facebook::react::NativeHCEModuleIOSSpecJSI>(params);
+    return std::make_shared<facebook::react::NativeHCEModuleSpecJSI>(params);
 }
 
 - (nonnull NSNumber *)isPlatformSupported {
@@ -119,7 +119,7 @@
 }
 
 + (NSString *)moduleName {
-    return @"NativeHCEModuleIOS";
+    return @"NativeHCEModule";
 }
 
 @end

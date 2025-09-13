@@ -41,7 +41,7 @@
     },
     "ios": {
       "modulesProvider": {
-        "NativeHCEModuleIOS": "RTNHCEModuleIOS"
+        "NativeHCEModule": "RTNHCEModuleIOS"
       }
     }
   }

@@ -13,5 +13,5 @@ Host Card Emulation Module for React Native on iOS and Android platforms.
 
 ## API Specification & Demo App
 
-* [module API (declarations)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/react-native-hce-module/js/NativeHCEModule.ts)
-* [demo app's code (example usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-ios-app/App.tsx)
+* [module API (declarations)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/native-hce-module/js/NativeHCEModule.ts)
+* [demo app's code (example usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-app/App.tsx)

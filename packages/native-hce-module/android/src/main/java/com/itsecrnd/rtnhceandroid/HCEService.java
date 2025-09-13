@@ -1,9 +1,12 @@
 package com.itsecrnd.rtnhceandroid;
 
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_READER_DETECT;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_READER_LOST;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_RECEIVE_C_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_SEND_R_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_DETECT;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_LOST;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_RECEIVE_C_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_SEND_R_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_AUTH;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_CAPDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_RAPDU;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -34,10 +37,10 @@ public class HCEService extends HostApduService {
                 String action = intent.getAction();
 
                 if (action != null) {
-                    AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("auth"));
+                    AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra(KEY_AUTH));
 
-                    if (action.equals(INTENT_SEND_R_APDU)) {
-                        String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
+                    if (action.equals(ACTION_SEND_R_APDU)) {
+                        String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra(KEY_RAPDU));
                         byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
                         sendResponseApdu(dec);
                     }
@@ -52,10 +55,10 @@ public class HCEService extends HostApduService {
     public byte[] processCommandApdu(byte[] command, Bundle extras) {
         String capdu = AESGCMUtil.encryptData(encSecretKey, BinaryUtils.ByteArrayToHexString(command));
 
-        Intent intent = new Intent(INTENT_RECEIVE_C_APDU);
+        Intent intent = new Intent(ACTION_RECEIVE_C_APDU);
         intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
-        intent.putExtra("capdu", capdu);
+        intent.putExtra(KEY_AUTH, AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
+        intent.putExtra(KEY_CAPDU, capdu);
         getApplicationContext().sendBroadcast(intent);
 
         return null;
@@ -81,12 +84,12 @@ public class HCEService extends HostApduService {
          * See a comment about registerReceiver() in RTNHCEAndroidModule.
          */
         IntentFilter filter = new IntentFilter();
-        filter.addAction(INTENT_SEND_R_APDU);
+        filter.addAction(ACTION_SEND_R_APDU);
         getApplicationContext().registerReceiver(receiver, filter, RECEIVER_EXPORTED);
 
-        Intent intent = new Intent(INTENT_READER_DETECT);
+        Intent intent = new Intent(ACTION_READER_DETECT);
         intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
+        intent.putExtra(KEY_AUTH, AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         getApplicationContext().sendBroadcast(intent);
     }
 
@@ -96,9 +99,9 @@ public class HCEService extends HostApduService {
 
         getApplicationContext().unregisterReceiver(receiver);
 
-        Intent intent = new Intent(INTENT_READER_LOST);
+        Intent intent = new Intent(ACTION_READER_LOST);
         intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
+        intent.putExtra(KEY_AUTH, AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         getApplicationContext().sendBroadcast(intent);
     }
 }

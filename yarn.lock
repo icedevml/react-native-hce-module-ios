@@ -1525,14 +1525,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@icedevml/demo-hce-module-ios-app@workspace:packages/demo-hce-module-ios-app":
+"@icedevml/demo-hce-module-ios-app@workspace:packages/demo-hce-module-app":
   version: 0.0.0-use.local
-  resolution: "@icedevml/demo-hce-module-ios-app@workspace:packages/demo-hce-module-ios-app"
+  resolution: "@icedevml/demo-hce-module-ios-app@workspace:packages/demo-hce-module-app"
   dependencies:
     "@babel/core": "npm:^7.25.2"
     "@babel/preset-env": "npm:^7.25.3"
     "@babel/runtime": "npm:^7.25.0"
-    "@icedevml/react-native-hce-module-ios": "workspace:^"
+    "@icedevml/react-native-host-card-emulation": "workspace:^"
     "@react-native-community/cli": "npm:20.0.0"
     "@react-native-community/cli-platform-android": "npm:20.0.0"
     "@react-native-community/cli-platform-ios": "npm:20.0.0"
@@ -1556,9 +1556,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@icedevml/react-native-hce-module-ios@workspace:^, @icedevml/react-native-hce-module-ios@workspace:packages/react-native-hce-module-ios":
+"@icedevml/react-native-host-card-emulation@workspace:^, @icedevml/react-native-host-card-emulation@workspace:packages/native-hce-module":
   version: 0.0.0-use.local
-  resolution: "@icedevml/react-native-hce-module-ios@workspace:packages/react-native-hce-module-ios"
+  resolution: "@icedevml/react-native-host-card-emulation@workspace:packages/native-hce-module"
   peerDependencies:
     react: "*"
     react-native: "*"

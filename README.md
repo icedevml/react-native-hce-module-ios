@@ -86,7 +86,7 @@ Install `@icedevml/react-native-host-card-emulation` package within your React N
     </manifest>
    ```
 2. Create file `android/app/src/main/res/xml/aid_list.xml`:
-   ```
+   ```xml
    <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
      android:description="@string/app_name"
      android:requireDeviceUnlock="false">

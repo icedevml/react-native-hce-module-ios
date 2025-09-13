@@ -1,7 +1,7 @@
 {
-  "name": "@icedevml/react-native-hce-module-ios",
-  "version": "0.1.5",
-  "description": "Host Card Emulation (HCE) React Native Turbo Module for iOS platform.",
+  "name": "@icedevml/react-native-host-card-emulation",
+  "version": "0.2.0",
+  "description": "Host Card Emulation (HCE) React Native Turbo Module for iOS and Android platforms.",
   "react-native": "js/index",
   "source": "js/index",
   "files": [
@@ -21,13 +21,13 @@
     "nfc",
     "hce"
   ],
-  "repository": "https://github.com/icedevml/react-native-hce-module-ios",
+  "repository": "https://github.com/icedevml/react-native-host-card-emulation",
   "author": "Michal Leszczynski ml@icedev.pl (https://github.com/icedevml)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/icedevml/react-native-hce-module-ios/issues"
+    "url": "https://github.com/icedevml/react-native-host-card-emulation/issues"
   },
-  "homepage": "https://github.com/icedevml/react-native-hce-module-ios#readme",
+  "homepage": "https://github.com/icedevml/react-native-host-card-emulation#readme",
   "peerDependencies": {
     "react": "*",
     "react-native": "*"

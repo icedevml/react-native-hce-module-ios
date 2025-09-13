@@ -1,4 +1,6 @@
-# Package: React Native HCE Module for iOS
+# Package: React Native HCE Module
+
+Host Card Emulation Module for React Native on iOS and Android platforms.
 
 > [!IMPORTANT]  
 > As per Apple's policy, **Host Card Emulation feature is only available for users based in the European
@@ -11,9 +13,5 @@
 
 ## API Specification & Demo App
 
-* [module API (declarations)](https://github.com/icedevml/react-native-hce-module-ios/blob/master/packages/react-native-hce-module-ios/js/NativeHCEModuleIOS.ts)
-* [demo app's code (example usage)](https://github.com/icedevml/react-native-hce-module-ios/blob/master/packages/demo-hce-module-ios-app/App.tsx)
-
-## Android Support
-
-This module doesn't support Android HCE functionality. See [react-native-hce](https://www.npmjs.com/package/react-native-hce) package for Android support.
+* [module API (declarations)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/react-native-hce-module/js/NativeHCEModule.ts)
+* [demo app's code (example usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-ios-app/App.tsx)

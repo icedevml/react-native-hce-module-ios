@@ -1,10 +1,10 @@
 package com.itsecrnd.rtnhceandroid;
 
 import static android.content.Context.RECEIVER_EXPORTED;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_READER_DETECT;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_READER_LOST;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_RECEIVE_C_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.INTENT_SEND_R_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_DETECT;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_LOST;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_RECEIVE_C_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_SEND_R_APDU;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -61,12 +61,12 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
                 if (action != null) {
                     AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("auth"));
 
-                    if (action.equals(INTENT_RECEIVE_C_APDU)) {
+                    if (action.equals(ACTION_RECEIVE_C_APDU)) {
                         String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
                         sendEvent("received", capdu);
-                    } else if (action.equals(INTENT_READER_DETECT)) {
+                    } else if (action.equals(ACTION_READER_DETECT)) {
                         sendEvent("readerDetected", "");
-                    } else if (action.equals(INTENT_READER_LOST)) {
+                    } else if (action.equals(ACTION_READER_LOST)) {
                         sendEvent("readerDeselected", "");
                     }
                 }
@@ -98,9 +98,9 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
                 .commit();
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(INTENT_RECEIVE_C_APDU);
-        filter.addAction(INTENT_READER_DETECT);
-        filter.addAction(INTENT_READER_LOST);
+        filter.addAction(ACTION_RECEIVE_C_APDU);
+        filter.addAction(ACTION_READER_DETECT);
+        filter.addAction(ACTION_READER_LOST);
 
         /*
          * FIXME It seems like those intents are not going through across this module and HostApduService.
@@ -187,7 +187,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
         String encRapdu = AESGCMUtil.encryptData(encSecretKey, rapdu);
 
-        Intent intent = new Intent(INTENT_SEND_R_APDU);
+        Intent intent = new Intent(ACTION_SEND_R_APDU);
         intent.setPackage(getReactApplicationContext().getPackageName());
         intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         intent.putExtra("rapdu", encRapdu);

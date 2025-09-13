@@ -32,18 +32,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     private final SecretKey encSecretKey;
     private boolean sessionOpen;
-
-    private void toggleHceService(Boolean enabled) {
-        getReactApplicationContext()
-                .getPackageManager()
-                .setComponentEnabledSetting(
-                        new ComponentName(getReactApplicationContext(), HCEService.class),
-                        enabled
-                                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP
-                );
-    }
+    private boolean hceRunning;
 
     private void sendEvent(final String type, final String arg) {
         WritableMap map = Arguments.createMap();
@@ -63,7 +52,16 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
                     if (action.equals(ACTION_RECEIVE_C_APDU)) {
                         String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
-                        sendEvent("received", capdu);
+
+                        if (sessionOpen) {
+                            sendEvent("received", capdu);
+                        } else {
+                            Intent rintent = new Intent(ACTION_SEND_R_APDU);
+                            rintent.setPackage(getReactApplicationContext().getPackageName());
+                            rintent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
+                            rintent.putExtra("rapdu", "6999");
+                            getReactApplicationContext().getApplicationContext().sendBroadcast(rintent);
+                        }
                     } else if (action.equals(ACTION_READER_DETECT)) {
                         sendEvent("readerDetected", "");
                     } else if (action.equals(ACTION_READER_LOST)) {
@@ -80,6 +78,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         super(context);
 
         this.sessionOpen = false;
+        this.hceRunning = false;
 
         String encKey;
 
@@ -116,6 +115,14 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     }
 
     @Override
+    public void invalidate() {
+        this.sessionOpen = false;
+        this.hceRunning = false;
+
+        getReactApplicationContext().getApplicationContext().unregisterReceiver(receiver);
+    }
+
+    @Override
     @NonNull
     public String getName() {
         return RTNHCEAndroidModule.NAME;
@@ -145,6 +152,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             promise.reject("err_card_session_exists", "Session already exists.");
         } else {
             this.sessionOpen = true;
+            this.hceRunning = false;
             promise.resolve(null);
             sendEvent("sessionStarted", "");
         }
@@ -157,8 +165,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void invalidateSession() {
-        toggleHceService(false);
         this.sessionOpen = false;
+        this.hceRunning = false;
         sendEvent("sessionInvalidated", "");
     }
 
@@ -169,14 +177,23 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void startHCE(Promise promise) {
-        toggleHceService(true);
-        promise.resolve(null);
+        if (this.sessionOpen) {
+            this.hceRunning = true;
+            promise.resolve(null);
+        } else {
+            promise.reject("err_no_card_session", "Session is not running.");
+        }
     }
 
     @Override
     public void stopHCE(String status, Promise promise) {
-        toggleHceService(false);
-        promise.resolve(null);
+        // status is ignored on Android
+        if (this.sessionOpen) {
+            this.hceRunning = false;
+            promise.resolve(null);
+        } else {
+            promise.reject("err_no_card_session", "Session is not running.");
+        }
     }
 
     @Override
@@ -198,10 +215,6 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void isHCERunning(Promise promise) {
-        int enabledSetting = getReactApplicationContext()
-                .getPackageManager()
-                .getComponentEnabledSetting(new ComponentName(getReactApplicationContext(), HCEService.class));
-
-        promise.resolve(enabledSetting == PackageManager.COMPONENT_ENABLED_STATE_ENABLED);
+        promise.resolve(hceRunning);
     }
 }

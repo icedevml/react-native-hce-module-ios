@@ -12,8 +12,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.nfc.NfcAdapter;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -55,19 +55,23 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
+            try {
+                String action = intent.getAction();
 
-            if (action == null) {
-                return;
-            }
+                if (action != null) {
+                    AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("auth"));
 
-            if (action.equals(INTENT_RECEIVE_C_APDU)) {
-                String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
-                sendEvent("received", capdu);
-            } else if (action.equals(INTENT_READER_DETECT)) {
-                sendEvent("readerDetected", "");
-            } else if (action.equals(INTENT_READER_LOST)) {
-                sendEvent("readerDeselected", "");
+                    if (action.equals(INTENT_RECEIVE_C_APDU)) {
+                        String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
+                        sendEvent("received", capdu);
+                    } else if (action.equals(INTENT_READER_DETECT)) {
+                        sendEvent("readerDetected", "");
+                    } else if (action.equals(INTENT_READER_LOST)) {
+                        sendEvent("readerDeselected", "");
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to handle broadcast in RTNHCEAndroidModule.", e);
             }
         }
     };
@@ -86,8 +90,9 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             throw new RuntimeException("Failed to generate encryption key.", e);
         }
 
+        String prefsName = getReactApplicationContext().getPackageName() + ".nativehcemodule";
         getReactApplicationContext()
-                .getSharedPreferences("RTNHCEAndroidModuleBroadcastEnc", Context.MODE_PRIVATE)
+                .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
                 .edit()
                 .putString("encKey", encKey)
                 .commit();
@@ -119,12 +124,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @Override
     public boolean isPlatformSupported() {
         PackageManager pm = getReactApplicationContext().getPackageManager();
-
-        if (!pm.hasSystemFeature(PackageManager.FEATURE_NFC)) {
-            return false;
-        }
-
-        return NfcAdapter.getDefaultAdapter(getReactApplicationContext()) != null;
+        return pm.hasSystemFeature(PackageManager.FEATURE_NFC)
+            && pm.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION);
     }
 
     @Override
@@ -188,6 +189,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
         Intent intent = new Intent(INTENT_SEND_R_APDU);
         intent.setPackage(getReactApplicationContext().getPackageName());
+        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         intent.putExtra("rapdu", encRapdu);
         getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
 

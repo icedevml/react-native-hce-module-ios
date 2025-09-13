@@ -19,6 +19,12 @@ import javax.crypto.spec.GCMParameterSpec;
 
 @SuppressLint("NewApi")
 public class AESGCMUtil {
+    public static String randomString() {
+        byte[] rnd = new byte[32];
+        new SecureRandom().nextBytes(rnd);
+        return BinaryUtils.ByteArrayToHexString(rnd);
+    }
+
     public static SecretKey generateKey() {
         KeyGenerator keyGen;
         try {
@@ -28,12 +34,6 @@ public class AESGCMUtil {
         }
         keyGen.init(256);
         return keyGen.generateKey();
-    }
-
-    public static byte[] generateNonce(int size) {
-        byte[] nonce = new byte[size];
-        new SecureRandom().nextBytes(nonce); // Fill nonce with random bytes
-        return nonce;
     }
 
     public static String encryptData(SecretKey key, String plaintext) {
@@ -56,7 +56,7 @@ public class AESGCMUtil {
                  | InvalidAlgorithmParameterException
                  | BadPaddingException
                  | InvalidKeyException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Crypto error.", e);
         }
     }
 
@@ -83,7 +83,7 @@ public class AESGCMUtil {
                  | BadPaddingException
                  | InvalidKeyException
                  | NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Crypto error.", e);
         }
     }
 }

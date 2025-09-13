@@ -30,20 +30,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public static final String TAG = "RTNHCEAndroidModule";
     public static final String NAME = "NativeHCEModule";
 
+    private volatile boolean sessionRunning;
+    private volatile boolean hceRunning;
+    private volatile boolean hceBreakConnection;
     private final SecretKey encSecretKey;
-    private boolean sessionOpen;
-
-    private void toggleHceService(Boolean enabled) {
-        getReactApplicationContext()
-                .getPackageManager()
-                .setComponentEnabledSetting(
-                        new ComponentName(getReactApplicationContext(), HCEService.class),
-                        enabled
-                                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP
-                );
-    }
 
     private void sendEvent(final String type, final String arg) {
         WritableMap map = Arguments.createMap();
@@ -63,11 +53,25 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
                     if (action.equals(ACTION_RECEIVE_C_APDU)) {
                         String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
-                        sendEvent("received", capdu);
+
+                        if (!hceBreakConnection) {
+                            sendEvent("received", capdu);
+                        } else {
+                            Intent rintent = new Intent(ACTION_SEND_R_APDU);
+                            rintent.setPackage(getReactApplicationContext().getPackageName());
+                            rintent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
+                            rintent.putExtra("rapdu", "6999");
+                            getReactApplicationContext().getApplicationContext().sendBroadcast(rintent);
+                        }
                     } else if (action.equals(ACTION_READER_DETECT)) {
                         sendEvent("readerDetected", "");
                     } else if (action.equals(ACTION_READER_LOST)) {
-                        sendEvent("readerDeselected", "");
+                        if (!hceBreakConnection) {
+                            // only if we haven't send a fake disconnect event already
+                            sendEvent("readerDeselected", "");
+                        }
+
+                        hceBreakConnection = false;
                     }
                 }
             } catch (Exception e) {
@@ -78,10 +82,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     RTNHCEAndroidModule(ReactApplicationContext context) {
         super(context);
-
-        this.sessionOpen = false;
-
         String encKey;
+        this.sessionRunning = false;
+        this.hceRunning = false;
+        this.hceBreakConnection = false;
 
         try {
             encSecretKey = AESGCMUtil.generateKey();
@@ -116,6 +120,11 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     }
 
     @Override
+    public void invalidate() {
+        getReactApplicationContext().getApplicationContext().unregisterReceiver(receiver);
+    }
+
+    @Override
     @NonNull
     public String getName() {
         return RTNHCEAndroidModule.NAME;
@@ -135,18 +144,18 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public boolean isExclusiveNFC() {
-        // unsupported on Android
+        // unsupported on Android, always false
         return false;
     }
 
     @Override
     public void beginSession(Promise promise) {
-        if (this.sessionOpen) {
-            promise.reject("err_card_session_exists", "Session already exists.");
-        } else {
-            this.sessionOpen = true;
-            promise.resolve(null);
+        if (!this.sessionRunning) {
+            this.sessionRunning = true;
             sendEvent("sessionStarted", "");
+            promise.resolve(null);
+        } else {
+            promise.reject("err_card_session_exists", "Session already exists.");
         }
     }
 
@@ -157,34 +166,42 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void invalidateSession() {
-        toggleHceService(false);
-        this.sessionOpen = false;
-        sendEvent("sessionInvalidated", "");
+        if (this.sessionRunning) {
+            this.sessionRunning = false;
+            sendEvent("sessionInvalidated", "userInvalidated");
+        }
     }
 
     @Override
     public boolean isSessionRunning() {
-        return this.sessionOpen;
+        return this.sessionRunning;
     }
 
     @Override
     public void startHCE(Promise promise) {
-        toggleHceService(true);
+        if (this.hceRunning) {
+            promise.reject("err_start_emulation", "Error trying to start emulation. Emulation already started.");
+            return;
+        }
+
+        this.hceRunning = true;
         promise.resolve(null);
     }
 
     @Override
     public void stopHCE(String status, Promise promise) {
-        toggleHceService(false);
+        if (this.hceRunning) {
+            this.hceBreakConnection = true;
+            this.hceRunning = false;
+
+            sendEvent("readerDeselected", "");
+        }
+
         promise.resolve(null);
     }
 
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
-        if (!this.sessionOpen) {
-            return;
-        }
-
         String encRapdu = AESGCMUtil.encryptData(encSecretKey, rapdu);
 
         Intent intent = new Intent(ACTION_SEND_R_APDU);
@@ -198,10 +215,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void isHCERunning(Promise promise) {
-        int enabledSetting = getReactApplicationContext()
-                .getPackageManager()
-                .getComponentEnabledSetting(new ComponentName(getReactApplicationContext(), HCEService.class));
-
-        promise.resolve(enabledSetting == PackageManager.COMPONENT_ENABLED_STATE_ENABLED);
+        // unsupported on Android, always true
+        promise.resolve(true);
     }
 }

@@ -170,7 +170,14 @@ extension Data {
 
   @objc public func startHCE(resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
     Task.init {
-      try await self.cardSession?.startEmulation()
+      do {
+        try await self.cardSession?.startEmulation()
+      } catch(let error) {
+        reject("err_start_emulation", "Error trying to start emulation. \(error)", nil)
+        return
+      }
+
+      resolve(nil)
     }
   }
 

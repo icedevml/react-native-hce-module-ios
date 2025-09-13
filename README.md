@@ -1,4 +1,8 @@
 # Host Card Emulation for iOS and Android (React Native)
+
+> ![NOTE]
+> Pull Requests welcome!
+
 ## Contents of this repository
 
 * [`packages/native-hce-module` - React Native Turbo Module (library)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/native-hce-module)

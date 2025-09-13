@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 22
       - run:
-          cd packages/react-native-hce-module-ios
+          cd packages/native-hce-module
       - run: yarn
       - run: yarn pack
 
@@ -45,7 +45,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: |
-          cd packages/react-native-hce-module-ios
+          cd packages/native-hce-module
           yarn npm publish --provenance --access public
 
   publish-gpr:
@@ -72,5 +72,5 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
       - run: |
-          cd packages/react-native-hce-module-ios
+          cd packages/native-hce-module
           yarn npm publish --provenance --access public

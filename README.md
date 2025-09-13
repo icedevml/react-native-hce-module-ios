@@ -1,4 +1,4 @@
-# Host Card Emulation for iOS Platform (React Native Turbo Module)
+# Host Card Emulation for iOS and Android (React Native)
 
 > [!IMPORTANT]  
 > As per Apple's policy, **Host Card Emulation feature is only available for users based in the European
@@ -50,4 +50,4 @@
 
 ## Module API
 
-See [package documentation](https://github.com/icedevml/react-native-hce-module-ios/tree/master/packages/react-native-hce-module-ios) for API and usage documentation.
+See [package documentation](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/native-hce-module) for API and usage documentation.

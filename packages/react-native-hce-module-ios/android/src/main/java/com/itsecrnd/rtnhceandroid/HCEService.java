@@ -31,7 +31,7 @@ public class HCEService extends HostApduService {
 
             if (action != null && action.equals(INTENT_SEND_R_APDU)) {
                 String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("rapdu"));
-                sendResponseApdu(new byte[] { (byte) 0xCC, (byte) 0x90, (byte) 0x00 });
+                sendResponseApdu(BinaryUtils.HexStringToByteArray(capdu));
             }
         }
     };

@@ -9,6 +9,9 @@ Host Card Emulation Module for React Native on iOS and Android platforms.
 > "[HCE-based contactless NFC transactions for apps in the European Economic Area (EEA)](https://developer.apple.com/support/hce-transactions-in-apps/)".
 
 ## Prerequisites
+This package was designed for React Native [New Architecture](https://reactnative.dev/architecture/landing-page) only.
+Make sure that your project has it enabled. Note that the New Architecture is enabled by default for React Native 0.76+ projects.
+
 ### iOS
 1. Ensure that you are enrolled as organization (not individual) in Apple Developer Program, and that you are established in the European Economic Area (EEA).
 2. Ensure that you meet other [non-technical requirements imposed by Apple](https://developer.apple.com/support/hce-transactions-in-apps/#requirements-and-availability).

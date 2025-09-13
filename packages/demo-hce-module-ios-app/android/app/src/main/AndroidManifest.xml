@@ -26,19 +26,19 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
-    </application>
-    <service
-      android:name="com.itsecrnd.rtnhceandroid.HCEService"
-      android:exported="true"
-      android:enabled="false"
-      android:permission="android.permission.BIND_NFC_SERVICE" >
-      <intent-filter>
-        <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+      <service
+        android:name="com.itsecrnd.rtnhceandroid.HCEService"
+        android:exported="true"
+        android:enabled="false"
+        android:permission="android.permission.BIND_NFC_SERVICE" >
+        <intent-filter>
+          <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
           <category android:name="android.intent.category.DEFAULT"/>
         </intent-filter>
 
         <meta-data
           android:name="android.nfc.cardemulation.host_apdu_service"
           android:resource="@xml/aid_list" />
-    </service>
+      </service>
+    </application>
 </manifest>

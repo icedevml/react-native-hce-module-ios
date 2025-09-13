@@ -1,6 +1,6 @@
 # Host Card Emulation for iOS and Android (React Native)
 
-> ![NOTE]
+> [!NOTE]
 > Pull Requests welcome!
 
 ## Contents of this repository

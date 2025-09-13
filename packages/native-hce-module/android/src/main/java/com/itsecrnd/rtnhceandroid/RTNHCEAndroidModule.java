@@ -33,6 +33,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     private volatile boolean sessionRunning;
     private volatile boolean hceRunning;
     private volatile boolean hceBreakConnection;
+    private volatile boolean hceDeselected;
     private final SecretKey encSecretKey;
 
     private void sendEvent(final String type, final String arg) {
@@ -54,20 +55,22 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
                     if (action.equals(ACTION_RECEIVE_C_APDU)) {
                         String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
 
-                        if (!hceBreakConnection) {
+                        if (!hceBreakConnection && hceRunning) {
                             sendEvent("received", capdu);
                         } else {
                             Intent rintent = new Intent(ACTION_SEND_R_APDU);
                             rintent.setPackage(getReactApplicationContext().getPackageName());
                             rintent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
-                            rintent.putExtra("rapdu", "6999");
+                            rintent.putExtra("rapdu", AESGCMUtil.encryptData(encSecretKey, "6999"));
                             getReactApplicationContext().getApplicationContext().sendBroadcast(rintent);
                         }
-                    } else if (action.equals(ACTION_READER_DETECT)) {
+                    } else if (hceRunning && action.equals(ACTION_READER_DETECT)) {
+                        hceDeselected = false;
                         sendEvent("readerDetected", "");
                     } else if (action.equals(ACTION_READER_LOST)) {
-                        if (!hceBreakConnection) {
+                        if (hceRunning && !hceBreakConnection && !hceDeselected) {
                             // only if we haven't send a fake disconnect event already
+                            hceDeselected = true;
                             sendEvent("readerDeselected", "");
                         }
 
@@ -86,6 +89,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         this.sessionRunning = false;
         this.hceRunning = false;
         this.hceBreakConnection = false;
+        this.hceDeselected = true;
 
         try {
             encSecretKey = AESGCMUtil.generateKey();
@@ -191,10 +195,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @Override
     public void stopHCE(String status, Promise promise) {
         if (this.hceRunning) {
-            this.hceBreakConnection = true;
             this.hceRunning = false;
 
-            sendEvent("readerDeselected", "");
+            if (!this.hceDeselected) {
+                this.hceDeselected = true;
+                this.hceBreakConnection = true;
+                sendEvent("readerDeselected", "");
+            }
         }
 
         promise.resolve(null);

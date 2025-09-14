@@ -166,7 +166,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
         break;
    ```
    For those events, trigger mechanisms are platform dependent:
-   * iOS: The `readerDetected` event will be emitted as soon as the NFC tag field presence is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
+   * iOS: The `readerDetected` event will be emitted as soon as the NFC reader's field presence is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
    * Android: The `readerDetected` event will be emitted as soon as the first matching SELECT AID command is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
 4. Receive incoming C-APDU and respond to it:
    ```typescript

@@ -2340,7 +2340,7 @@ PODS:
     - React-perflogger (= 0.81.4)
     - React-utils (= 0.81.4)
     - SocketRocket
-  - RTNHCEModuleIOS (0.1.0):
+  - RTNHCEModuleIOS (0.4.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2444,7 +2444,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
-  - "RTNHCEModuleIOS (from `../../../node_modules/@icedevml/react-native-hce-module-ios`)"
+  - "RTNHCEModuleIOS (from `../../../node_modules/@icedevml/react-native-host-card-emulation`)"
   - SocketRocket (~> 0.7.1)
   - Yoga (from `../../../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2597,7 +2597,7 @@ EXTERNAL SOURCES:
   ReactCommon:
     :path: "../../../node_modules/react-native/ReactCommon"
   RTNHCEModuleIOS:
-    :path: "../../../node_modules/@icedevml/react-native-hce-module-ios"
+    :path: "../../../node_modules/@icedevml/react-native-host-card-emulation"
   Yoga:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
@@ -2673,10 +2673,10 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 433ddfb4536948630aadd5bd925aff8a632d2fe3
   ReactCodegen: 64dbbed4e9e0264d799578ea78492479a66fba4a
   ReactCommon: 394c6b92765cf6d211c2c3f7f6bc601dffb316a6
-  RTNHCEModuleIOS: 450e828686f4d8a017fddc72404efc4ff4a1cc08
+  RTNHCEModuleIOS: 6aa03829904932273c6f052dee1a2e6714e6c8c9
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: a3ed390a19db0459bd6839823a6ac6d9c6db198d
 
 PODFILE CHECKSUM: 480f1379d433357d00eb3f54accbd450f2fa0179
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

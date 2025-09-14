@@ -64,7 +64,10 @@ Afterwards, follow the subsections below for each platform that you need to supp
       ...
 
    +  <uses-permission android:name="android.permission.NFC" />
+   +  <!-- set required="true" if your app would be entirely useless on devices without HCE support -->
    +  <uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
+   +  <!-- declare a custom service to authenticate communications betwenn your app and the HCE service -->
+   +  <!-- all the rest will be automatically handled by the module's code, don't change the permission name or level! -->
    +  <permission android:name="com.itsecrnd.rtnhceandroid.HCE_BROADCAST" android:protectionLevel="signature" />
    +  <uses-permission android:name="com.itsecrnd.rtnhceandroid.HCE_BROADCAST"/>
 

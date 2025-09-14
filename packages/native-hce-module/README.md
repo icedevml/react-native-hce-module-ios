@@ -23,7 +23,17 @@ Make sure that your project has it enabled. Note that the New Architecture is en
 *(no prerequisite steps are required for Android)*
 
 ## Installation
-Install `@icedevml/react-native-host-card-emulation` package within your React Native project. Then, follow the subsections below for each platform that you need to support.
+Install this package within your React Native project:
+
+```
+yarn add @icedevml/react-native-host-card-emulation
+```
+or using npm
+```
+npm install --save @icedevml/react-native-host-card-emulation
+```
+
+Afterwards, follow the subsections below for each platform that you need to support.
 
 ### iOS
 1. Make sure to set up a proper signing team and bundle identifier in "Signing & Capabilities" configuration section of your project.
@@ -100,19 +110,35 @@ Install `@icedevml/react-native-host-card-emulation` package within your React N
 
 This module provides a uniform low-level HCE API for both mobile platforms.
 
-1. Subscribe to the event stream (there is a single global event stream for the entire module):
+> [!NOTE]
+> Raw native module's API specification is available in [packages/native-hce-module/js/NativeHCEModule.ts](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/native-hce-module/js/NativeHCEModule.ts).
+> Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.
+
+> [!NOTE]
+> See [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-app/App.tsx) example for more insignt about the library's API.
+
+### Quick start guide
+
+1. Subscribe to the event stream. There is a single global event stream, so you can subscribe early and remain subscribed to events for the entire application's lifetime.
    ```typescript
-   NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
-       switch (event.type) {
-           /* ... your handler here ... */
+   useEffect(() => {
+       const removeListener = NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
+           switch (event.type) {
+               /* ... implement event handlers here ... */
+           }
+       });
+
+       // cleanup the event listener when the effect is unmounted
+       return () => {
+           removeListener();
        }
-   });
+   }, []);
    ```
-2. When user indicates that he wants to perform the HCE action, call the following function from the button's onClick routine:
+2. When user indicates that he/she wants to perform the HCE action, call the following function from the button's onClick routine:
    ```typescript
    await NativeHCEModule?.beginSession();
    ```
-   This will emit `sessionStarted` event on both platforms. You can start the HCE straight from that event:
+   This will emit `sessionStarted` event right after the function call, on both iOS and Android platforms. After the session is started, you can decide to start HCE emulation right away in the event handler:
    ```typescript
    // inside NativeHCEModule?.onEvent handler's switch
    case 'sessionStarted':
@@ -120,10 +146,10 @@ This module provides a uniform low-level HCE API for both mobile platforms.
        await NativeHCEModule?.startHCE();
        break;
    ```
-3. Calling `startHCE()` causes:
-   * iOS: Launch of the NFC scan system UI. The smartphone will start listening for C-APDUs from the readers right after that UI appears on screen. The `readerDetected` event will be emitted as soon as the NFC tag field presence is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
-   * Android: No user interface appears (you have to implement it on your own scanning UI, within your app). The `readerDetected` event will be emitted as soon as the first matching SELECT AID command is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
-4. Optionally, you can handle `readerDetected` and `readerDeselected events to enhance user's experience.
+   Calling `await NativeHCEModule?.startHCE()` causes:
+   * iOS: Your smartphone will start listening for C-APDUs (Command APDUs originating from reader devices) right after that function is called, which will be additionally indicated by the operating system popping out the NFC scanning user interface prompt.
+   * Android: HCE commands will be forwarded to your application from that point on. No specific user interface is displayed (you have to implement it on your own, within your app).
+3. Optionally, you can handle `readerDetected` and `readerDeselected` events to enhance user's experience.
    ```typescript
    // inside NativeHCEModule?.onEvent handler's switch
    case 'readerDetected':
@@ -134,29 +160,40 @@ This module provides a uniform low-level HCE API for both mobile platforms.
         NativeHCEModule?.setSessionAlertMessage('Lost reader');  // only for iOS, no-op in Android
         break;
    ```
-5. Handle CAPDU
+   For those events, trigger mechanisms are platform dependent:
+   * iOS: The `readerDetected` event will be emitted as soon as the NFC tag field presence is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
+   * Android: The `readerDetected` event will be emitted as soon as the first matching SELECT AID command is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
+4. Receive incoming C-APDU and respond to it:
    ```typescript
    // inside NativeHCEModule?.onEvent handler's switch
    case 'received':
-       NativeHCEModule?.setSessionAlertMessage('Keep holding the tag');
+       NativeHCEModule?.setSessionAlertMessage('Keep holding the tag');  // only for iOS, no-op on Android
 
+       // decode incoming C-APDU to bytes
        const capdu = Buffer.from(event.arg!, 'hex');
        console.log('Received C-APDU, capdu.toString('hex'));
    
-       // let's say we always want to respond with [0x0A] + Status Word 0x9000
+       // for the demo purposes, we always want to respond with [0x0A] + status code 0x9000 (success)
        await NativeHCEModule?.respondAPDU(Buffer.from([0x0A, 0x90, 0x00], "hex"));
        break;
    ```
-6. (iOS) Optionally, if you need to utilize `NFCPresentmentIntentAssertion` then at any time you can call:
-   ```typescript
-   NativeHCEModule?.acquireExclusiveNFC();
-   ```
-   Which will throw an exception if the presentment intent assertion was already acquired and is still valid 
-   (usually 15 seconds) or if the cooldown period for acquiring new assertion was not yet expired (usually also 15 seconds).
+   You don't have to respond to the APDU right away from within the event handler, but please remember that the reader might time out if you will be lingering with the response for too long.
 
-> [!NOTE]
-> See [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-app/App.tsx) example for more insignt about the library's API.
+### iOS: Acquiring exclusive NFC access
+If you need to utilize `NFCPresentmentIntentAssertion` for enhanced user experience, call:
+```typescript
+NativeHCEModule?.acquireExclusiveNFC();
+```
+This function will acquire an exclusive NFC access for 15 seconds. On system services or other applications will be able to interfere with NFC during that period. For example, the NFC background tag reading will be disabled so it would not generate any distracting notifications.
 
-> [!NOTE]
-> Raw native module's API specification is available in [packages/native-hce-module/js/NativeHCEModule.ts](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/native-hce-module/js/NativeHCEModule.ts).
-> Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.
+This function will throw an exception if:
+* the presentment intent assertion was already acquired and is still active;
+* you are in the cooldown period where you are not allowed to acquire the presentment intent assertion (cooldown is 15 seconds after the previous assertion had expired);
+* the feature is not supported or the device is not eligible for whatever reason;
+
+Call `NativeHCEModule?.isExclusiveNFC()` to check if exclusive NFC access is still active.
+
+### More resources
+
+* [Module's API specification](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/native-hce-module/js/NativeHCEModule.ts)
+* [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-hce-module-app/App.tsx)

@@ -157,6 +157,8 @@ public class HCEService extends HostApduService {
     public void onDeactivated(int reason) {
         Log.d(TAG, "HCEService onDeactivated: " + reason);
 
+        // TODO remove event listeners for headlessJsTaskContext
+
         getApplicationContext().unregisterReceiver(receiver);
 
         Intent intent = new Intent(ACTION_READER_LOST);

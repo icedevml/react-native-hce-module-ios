@@ -54,7 +54,9 @@ Install `@icedevml/react-native-host-card-emulation` package within your React N
       ...
 
    +  <uses-permission android:name="android.permission.NFC" />
-   +  <uses-feature android:name="android.hardware.nfc.hce" android:required="true" />
+   +  <uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
+   +  <permission android:name="com.itsecrnd.rtnhceandroid.HCE_BROADCAST" android:protectionLevel="signature" />
+   +  <uses-permission android:name="com.itsecrnd.rtnhceandroid.HCE_BROADCAST"/>
 
       ...
 
@@ -65,10 +67,10 @@ Install `@icedevml/react-native-host-card-emulation` package within your React N
         ...
    
    +    <service
-   +      android:name="com.itsecrnd.rtnhceandroid.HCEService"
+   +      android:name="com.itsecrnd.rtnhceandroid.service.HCEService"
    +      android:exported="true"
    +      android:enabled="true"
-   +      android:permission="android.permission.BIND_NFC_SERVICE" >
+   +      android:permission="android.permission.BIND_NFC_SERVICE">
    +      <intent-filter>
    +        <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
    +        <category android:name="android.intent.category.DEFAULT"/>

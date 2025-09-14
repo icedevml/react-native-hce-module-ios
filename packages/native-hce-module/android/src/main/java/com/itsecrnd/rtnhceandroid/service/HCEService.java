@@ -1,12 +1,12 @@
-package com.itsecrnd.rtnhceandroid;
+package com.itsecrnd.rtnhceandroid.service;
 
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_DETECT;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_LOST;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_RECEIVE_C_APDU;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_SEND_R_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_AUTH;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_CAPDU;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_RAPDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.PERMISSION_HCE_BROADCAST;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,16 +19,13 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
-import java.util.Locale;
+import com.itsecrnd.rtnhceandroid.util.BinaryUtils;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+import java.util.Locale;
 
 @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
 public class HCEService extends HostApduService {
     private static final String TAG = "HCEService";
-
-    private SecretKey encSecretKey;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -36,14 +33,17 @@ public class HCEService extends HostApduService {
             try {
                 String action = intent.getAction();
 
-                if (action != null) {
-                    AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra(KEY_AUTH));
+                if (action != null && action.equals(ACTION_SEND_R_APDU)) {
+                    String rapdu = intent.getStringExtra(KEY_RAPDU);
 
-                    if (action.equals(ACTION_SEND_R_APDU)) {
-                        String rapdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra(KEY_RAPDU));
-                        byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
-                        sendResponseApdu(dec);
+                    if (rapdu == null) {
+                        throw new RuntimeException("Bug! ACTION_SEND_RAPDU intent KEY_RAPDU is null.");
                     }
+
+                    byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
+                    sendResponseApdu(dec);
+                } else {
+                    Log.w(TAG, "Received unknown action: " + action);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Failed to handle broadcast in HCEService.", e);
@@ -53,13 +53,12 @@ public class HCEService extends HostApduService {
 
     @Override
     public byte[] processCommandApdu(byte[] command, Bundle extras) {
-        String capdu = AESGCMUtil.encryptData(encSecretKey, BinaryUtils.ByteArrayToHexString(command));
+        String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
         Intent intent = new Intent(ACTION_RECEIVE_C_APDU);
         intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra(KEY_AUTH, AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
         intent.putExtra(KEY_CAPDU, capdu);
-        getApplicationContext().sendBroadcast(intent);
+        getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
 
         return null;
     }
@@ -68,29 +67,14 @@ public class HCEService extends HostApduService {
     public void onCreate() {
         Log.d(TAG, "HCEService onCreate");
 
-        String prefsName = getApplicationContext().getPackageName() + ".nativehcemodule";
-        String encKey = getApplicationContext()
-                .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-                .getString("encKey", "");
-
-        if (encKey.isEmpty()) {
-            throw new RuntimeException("Failed to load encKey.");
-        }
-
-        byte[] bArr = BinaryUtils.HexStringToByteArray(encKey);
-        encSecretKey = new SecretKeySpec(bArr, 0, bArr.length, "AES");
-
-        /*
-         * See a comment about registerReceiver() in RTNHCEAndroidModule.
-         */
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_SEND_R_APDU);
-        getApplicationContext().registerReceiver(receiver, filter, RECEIVER_EXPORTED);
+        getApplicationContext().registerReceiver(
+                receiver, filter, PERMISSION_HCE_BROADCAST, null, RECEIVER_EXPORTED);
 
         Intent intent = new Intent(ACTION_READER_DETECT);
         intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra(KEY_AUTH, AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
-        getApplicationContext().sendBroadcast(intent);
+        getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
     }
 
     @Override
@@ -101,7 +85,6 @@ public class HCEService extends HostApduService {
 
         Intent intent = new Intent(ACTION_READER_LOST);
         intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra(KEY_AUTH, AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
-        getApplicationContext().sendBroadcast(intent);
+        getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
     }
 }

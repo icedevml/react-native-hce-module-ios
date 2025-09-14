@@ -5,9 +5,9 @@ import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_DETECT;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_LOST;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_RECEIVE_C_APDU;
 import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_SEND_R_APDU;
+import static com.itsecrnd.rtnhceandroid.IntentKeys.PERMISSION_HCE_BROADCAST;
 
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -23,9 +23,6 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.WritableMap;
 
-import javax.crypto.SecretKey;
-
-@RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
 public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public static final String TAG = "RTNHCEAndroidModule";
     public static final String NAME = "NativeHCEModule";
@@ -34,7 +31,6 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     private volatile boolean hceRunning;
     private volatile boolean hceBreakConnection;
     private volatile boolean hceDeselected;
-    private final SecretKey encSecretKey;
 
     private void sendEvent(final String type, final String arg) {
         WritableMap map = Arguments.createMap();
@@ -43,39 +39,46 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         emitOnEvent(map);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
                 String action = intent.getAction();
 
-                if (action != null) {
-                    AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("auth"));
+                if (action == null) {
+                    Log.w(TAG, "Received intent with null action in module receiver.");
+                    return;
+                }
 
-                    if (action.equals(ACTION_RECEIVE_C_APDU)) {
-                        String capdu = AESGCMUtil.decryptData(encSecretKey, intent.getStringExtra("capdu"));
+                if (action.equals(ACTION_RECEIVE_C_APDU)) {
+                    String capdu = intent.getStringExtra("capdu");
 
-                        if (!hceBreakConnection && hceRunning) {
-                            sendEvent("received", capdu);
-                        } else {
-                            Intent rintent = new Intent(ACTION_SEND_R_APDU);
-                            rintent.setPackage(getReactApplicationContext().getPackageName());
-                            rintent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
-                            rintent.putExtra("rapdu", AESGCMUtil.encryptData(encSecretKey, "6999"));
-                            getReactApplicationContext().getApplicationContext().sendBroadcast(rintent);
-                        }
-                    } else if (hceRunning && action.equals(ACTION_READER_DETECT)) {
+                    if (!hceBreakConnection && hceRunning) {
+                        sendEvent("received", capdu);
+                    } else {
+                        // HCE is already disabled or was just disabled while the HCEService was running
+                        // don't forward C-APDUs to the application and just respond 6999 to everything
+                        Intent rintent = new Intent(ACTION_SEND_R_APDU);
+                        rintent.setPackage(getReactApplicationContext().getPackageName());
+                        rintent.putExtra("rapdu", "6999");
+                        getReactApplicationContext().getApplicationContext().sendBroadcast(rintent, PERMISSION_HCE_BROADCAST);
+                    }
+                } else if (action.equals(ACTION_READER_DETECT)) {
+                    if (hceRunning) {
                         hceDeselected = false;
                         sendEvent("readerDetected", "");
-                    } else if (action.equals(ACTION_READER_LOST)) {
-                        if (hceRunning && !hceBreakConnection && !hceDeselected) {
-                            // only if we haven't send a fake disconnect event already
-                            hceDeselected = true;
-                            sendEvent("readerDeselected", "");
-                        }
-
-                        hceBreakConnection = false;
                     }
+                } else if (action.equals(ACTION_READER_LOST)) {
+                    if (hceRunning && !hceBreakConnection && !hceDeselected) {
+                        // only if we haven't send a fake disconnect event already
+                        hceDeselected = true;
+                        sendEvent("readerDeselected", "");
+                    }
+
+                    hceBreakConnection = false;
+                } else {
+                    Log.w(TAG, "Received unknown action intent in module receiver: " + action);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Failed to handle broadcast in RTNHCEAndroidModule.", e);
@@ -85,47 +88,33 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     RTNHCEAndroidModule(ReactApplicationContext context) {
         super(context);
-        String encKey;
+
         this.sessionRunning = false;
         this.hceRunning = false;
         this.hceBreakConnection = false;
         this.hceDeselected = true;
 
-        try {
-            encSecretKey = AESGCMUtil.generateKey();
-            encKey = BinaryUtils.ByteArrayToHexString(encSecretKey.getEncoded());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to generate encryption key.", e);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(ACTION_RECEIVE_C_APDU);
+            filter.addAction(ACTION_READER_DETECT);
+            filter.addAction(ACTION_READER_LOST);
+
+            getReactApplicationContext().getApplicationContext().registerReceiver(
+                    receiver,
+                    filter,
+                    PERMISSION_HCE_BROADCAST,
+                    null,
+                    RECEIVER_EXPORTED
+            );
         }
-
-        String prefsName = getReactApplicationContext().getPackageName() + ".nativehcemodule";
-        getReactApplicationContext()
-                .getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-                .edit()
-                .putString("encKey", encKey)
-                .commit();
-
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_RECEIVE_C_APDU);
-        filter.addAction(ACTION_READER_DETECT);
-        filter.addAction(ACTION_READER_LOST);
-
-        /*
-         * FIXME It seems like those intents are not going through across this module and HostApduService.
-         * This happens even though those things are within the same application and package.
-         * It also seems like there is no way to bind HostApduService (or it's a skill issue).
-         *
-         * For now we will just encrypt&authenticate all messages using AES/GCM and use exported
-         * receivers. This is not a perfect solution but it is going to be secure and sufficient for now.
-         *
-         * If somebody knows a better way then any pull requests would be greatly appreciated.
-         */
-        getReactApplicationContext().getApplicationContext().registerReceiver(receiver, filter, RECEIVER_EXPORTED);
     }
 
     @Override
     public void invalidate() {
-        getReactApplicationContext().getApplicationContext().unregisterReceiver(receiver);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getReactApplicationContext().getApplicationContext().unregisterReceiver(receiver);
+        }
     }
 
     @Override
@@ -136,9 +125,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public boolean isPlatformSupported() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return false;
+        }
+
         PackageManager pm = getReactApplicationContext().getPackageManager();
         return pm.hasSystemFeature(PackageManager.FEATURE_NFC)
-            && pm.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION);
+                && pm.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION);
     }
 
     @Override
@@ -154,6 +147,11 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void beginSession(Promise promise) {
+        if (!isPlatformSupported()) {
+            promise.reject("err_platform_unsupported", "Unsupported Android version or missing NFC/HCE feature.");
+            return;
+        }
+
         if (!this.sessionRunning) {
             this.sessionRunning = true;
             sendEvent("sessionStarted", "");
@@ -183,6 +181,11 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void startHCE(Promise promise) {
+        if (!this.sessionRunning) {
+            promise.reject("err_no_session", "No session is active.");
+            return;
+        }
+
         if (this.hceRunning) {
             promise.reject("err_start_emulation", "Error trying to start emulation. Emulation already started.");
             return;
@@ -194,6 +197,11 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void stopHCE(String status, Promise promise) {
+        if (!this.sessionRunning) {
+            promise.reject("err_no_session", "No session is active.");
+            return;
+        }
+
         if (this.hceRunning) {
             this.hceRunning = false;
 
@@ -207,22 +215,27 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         promise.resolve(null);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
-        String encRapdu = AESGCMUtil.encryptData(encSecretKey, rapdu);
+        if (!this.sessionRunning) {
+            promise.reject("err_no_session", "No session is active.");
+            return;
+        } else if (!this.hceRunning) {
+            promise.reject("err_no_hce", "HCE is not running.");
+            return;
+        }
 
         Intent intent = new Intent(ACTION_SEND_R_APDU);
         intent.setPackage(getReactApplicationContext().getPackageName());
-        intent.putExtra("auth", AESGCMUtil.encryptData(encSecretKey, AESGCMUtil.randomString()));
-        intent.putExtra("rapdu", encRapdu);
-        getReactApplicationContext().getApplicationContext().sendBroadcast(intent);
+        intent.putExtra("rapdu", rapdu);
+        getReactApplicationContext().getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
 
         promise.resolve(null);
     }
 
     @Override
     public void isHCERunning(Promise promise) {
-        // unsupported on Android, always true
-        promise.resolve(true);
+        promise.resolve(this.hceRunning);
     }
 }

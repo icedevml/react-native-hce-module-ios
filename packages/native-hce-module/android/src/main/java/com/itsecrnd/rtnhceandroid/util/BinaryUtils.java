@@ -20,7 +20,7 @@
  *
  */
 
-package com.itsecrnd.rtnhceandroid;
+package com.itsecrnd.rtnhceandroid.util;
 
 public class BinaryUtils {
     /**

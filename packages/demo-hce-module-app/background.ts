@@ -5,7 +5,7 @@ import NativeHCEModule, {HCEModuleEvent} from '@icedevml/react-native-host-card-
 
 export default async function run() {
   // TODO un-duplicate code
-  NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
+  let subscription = NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
     try {
       console.log('bg received event', event);
 
@@ -16,6 +16,8 @@ export default async function run() {
 
         case 'readerDeselected':
           NativeHCEModule?.setSessionAlertMessage('Lost reader');
+          console.log('remove subscription');
+          subscription.remove();
           break;
 
         case 'sessionStarted':

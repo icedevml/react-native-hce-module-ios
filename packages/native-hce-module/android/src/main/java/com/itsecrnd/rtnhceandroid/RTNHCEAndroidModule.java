@@ -235,8 +235,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         }
 
         if (this.cb != null) {
+            Log.i(TAG, "respondAPDU(): Send to callback");
             cb.onRAPDU(rapdu);
         } else {
+            Log.i(TAG, "respondAPDU(): Send broadcast");
             Intent intent = new Intent(ACTION_SEND_R_APDU);
             intent.setPackage(getReactApplicationContext().getPackageName());
             intent.putExtra("rapdu", rapdu);

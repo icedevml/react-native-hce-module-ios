@@ -80,6 +80,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             try {
                 String action = intent.getAction();
 
+                Log.i(TAG, "onReceive()");
                 if (action != null && action.equals(ACTION_SEND_R_APDU)) {
                     String rapdu = intent.getStringExtra(KEY_RAPDU);
 
@@ -121,6 +122,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     @Override
     public void onCreate() {
         ReactHost reactHost = ((ReactApplication) getApplication()).getReactHost();
+        Log.i(TAG, "ReactHost: " + reactHost);
 
         isForeground = isAppOnForeground(getApplicationContext());
         cachedCAPDU = null;
@@ -129,11 +131,10 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         if (isForeground) {
             Log.d(TAG, "HCEService onCreate foreground");
 
-            // check if background context was already started
             ReactContext reactContext = reactHost.getCurrentReactContext();
+
             if (reactContext != null) {
-                Log.i(TAG, "Destroy existing React Context from background.");
-                reactContext.destroy();
+                ((RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule")).setSessionBeginCallback(null);
             }
 
             IntentFilter filter = new IntentFilter();
@@ -168,6 +169,8 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             Intent intent = new Intent(ACTION_READER_LOST);
             intent.setPackage(getApplicationContext().getPackageName());
             getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        } else {
+            this.mhceModule.pSendEvent("readerDeselected", "");
         }
     }
 

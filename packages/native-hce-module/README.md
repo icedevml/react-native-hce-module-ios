@@ -127,7 +127,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 1. Subscribe to the event stream. There is a single global event stream, so you can subscribe early and remain subscribed to events for the entire application's lifetime.
    ```typescript
    useEffect(() => {
-       const removeListener = NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
+       const subscription = NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
            switch (event.type) {
                /* ... implement event handlers here ... */
            }
@@ -135,7 +135,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 
        // cleanup the event listener when the effect is unmounted
        return () => {
-           removeListener();
+           subscription.remove();
        }
    }, []);
    ```

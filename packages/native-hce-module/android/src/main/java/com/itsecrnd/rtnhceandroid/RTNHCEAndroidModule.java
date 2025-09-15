@@ -17,6 +17,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.RequiresPermission;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
@@ -31,6 +32,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     private volatile boolean hceRunning;
     private volatile boolean hceBreakConnection;
     private volatile boolean hceDeselected;
+    private ReadinessCallback cb;
 
     private void sendEvent(final String type, final String arg) {
         WritableMap map = Arguments.createMap();
@@ -88,6 +90,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     RTNHCEAndroidModule(ReactApplicationContext context) {
         super(context);
+
+        this.cb = null;
 
         this.sessionRunning = false;
         this.hceRunning = false;
@@ -156,6 +160,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             this.sessionRunning = true;
             sendEvent("sessionStarted", "");
             promise.resolve(null);
+
+            if (cb != null) {
+                cb.onSessionStarted();
+            }
         } else {
             promise.reject("err_card_session_exists", "Session already exists.");
         }
@@ -226,10 +234,14 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             return;
         }
 
-        Intent intent = new Intent(ACTION_SEND_R_APDU);
-        intent.setPackage(getReactApplicationContext().getPackageName());
-        intent.putExtra("rapdu", rapdu);
-        getReactApplicationContext().getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        if (this.cb != null) {
+            cb.onRAPDU(rapdu);
+        } else {
+            Intent intent = new Intent(ACTION_SEND_R_APDU);
+            intent.setPackage(getReactApplicationContext().getPackageName());
+            intent.putExtra("rapdu", rapdu);
+            getReactApplicationContext().getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        }
 
         promise.resolve(null);
     }
@@ -237,5 +249,18 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @Override
     public void isHCERunning(Promise promise) {
         promise.resolve(this.hceRunning);
+    }
+
+    public boolean checkEventEmitter() {
+        Log.i(TAG, "BBB has event emitter? " + mEventEmitterCallback);
+        return mEventEmitterCallback != null;
+    }
+
+    public void setSessionBeginCallback(ReadinessCallback cb) {
+        this.cb = cb;
+    }
+
+    public void pSendEvent(final String type, final String arg) {
+        sendEvent(type, arg);
     }
 }

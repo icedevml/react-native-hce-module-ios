@@ -4,12 +4,12 @@
 
 import { AppRegistry } from 'react-native';
 import App from './App';
+import runBackground from './background';
 import { name as appName } from './app.json';
 
 AppRegistry.registerComponent(appName, () => App);
 AppRegistry.registerHeadlessTask('handleBackgroundHCECall', async () => {
-  // TODO start handling HCE here
-  console.log('hello from task');
-  console.log('hello from task');
-  console.log('hello from task');
+  console.log('started background task');
+  await runBackground();
+  console.log('end of background task');
 });

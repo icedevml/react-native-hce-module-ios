@@ -31,14 +31,42 @@ import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.jstasks.HeadlessJsTaskConfig;
 import com.facebook.react.jstasks.HeadlessJsTaskContext;
 import com.facebook.react.jstasks.HeadlessJsTaskEventListener;
+import com.itsecrnd.rtnhceandroid.RTNHCEAndroidModule;
+import com.itsecrnd.rtnhceandroid.ReadinessCallback;
 import com.itsecrnd.rtnhceandroid.util.BinaryUtils;
 
 import java.util.List;
 import java.util.Locale;
 
 @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-public class HCEService extends HostApduService {
+public class HCEService extends HostApduService implements ReactInstanceEventListener {
     private static final String TAG = "HCEService";
+
+    private boolean isForeground;
+    private RTNHCEAndroidModule mhceModule;
+    private byte[] cachedCAPDU;
+
+    private boolean isAppOnForeground(Context context) {
+        /*
+         We need to check if app is in foreground otherwise the app will crash.
+         https://stackoverflow.com/questions/8489993/check-android-application-is-in-foreground-or-not
+         */
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> appProcesses =
+                activityManager.getRunningAppProcesses();
+        if (appProcesses == null) {
+            return false;
+        }
+        final String packageName = context.getPackageName();
+        for (ActivityManager.RunningAppProcessInfo appProcess : appProcesses) {
+            if (appProcess.importance ==
+                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                    appProcess.processName.equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -68,40 +96,36 @@ public class HCEService extends HostApduService {
     public byte[] processCommandApdu(byte[] command, Bundle extras) {
         String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
-        Intent intent = new Intent(ACTION_RECEIVE_C_APDU);
-        intent.setPackage(getApplicationContext().getPackageName());
-        intent.putExtra(KEY_CAPDU, capdu);
-        getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        if (!isForeground) {
+            if (mhceModule != null && mhceModule.checkEventEmitter()) {
+                mhceModule.pSendEvent("received", capdu);
+            } else {
+                cachedCAPDU = command;
+            }
+        } else {
+            Intent intent = new Intent(ACTION_RECEIVE_C_APDU);
+            intent.setPackage(getApplicationContext().getPackageName());
+            intent.putExtra(KEY_CAPDU, capdu);
+            getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        }
 
         return null;
     }
 
-    private boolean isAppOnForeground(Context context) {
-        /**
-         We need to check if app is in foreground otherwise the app will crash.
-         https://stackoverflow.com/questions/8489993/check-android-application-is-in-foreground-or-not
-         **/
-        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> appProcesses =
-                activityManager.getRunningAppProcesses();
-        if (appProcesses == null) {
-            return false;
-        }
-        final String packageName = context.getPackageName();
-        for (ActivityManager.RunningAppProcessInfo appProcess : appProcesses) {
-            if (appProcess.importance ==
-                    ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
-                    appProcess.processName.equals(packageName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public void onCreate() {
-        if (isAppOnForeground(getApplicationContext())) {
+        isForeground = isAppOnForeground(getApplicationContext());
+        cachedCAPDU = null;
+        mhceModule = null;
+
+        if (isForeground) {
             Log.d(TAG, "HCEService onCreate foreground");
+
+            // TODO tear down existing react context
+
+            if (mhceModule != null) {
+                mhceModule.setSessionBeginCallback(null);
+            }
 
             IntentFilter filter = new IntentFilter();
             filter.addAction(ACTION_SEND_R_APDU);
@@ -115,40 +139,11 @@ public class HCEService extends HostApduService {
             Log.d(TAG, "HCEService onCreate background");
 
             ReactHost reactHost = ((ReactApplication) getApplication()).getReactHost();
-            reactHost.addReactInstanceEventListener(new ReactInstanceEventListener() {
-                @Override
-                public void onReactContextInitialized(@NonNull ReactContext reactContext) {
-                    HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
 
-                    headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
-                        @Override
-                        public void onHeadlessJsTaskStart(int i) {
-                            Log.i(TAG, "onHeadlessJsTaskStart: " + i);
-                        }
+            Log.i(TAG, "React Host lifecycle state: " + reactHost.getLifecycleState().name());
+            Log.i(TAG, "React Host lifecycle state: " + reactHost.getCurrentReactContext());
 
-                        @Override
-                        public void onHeadlessJsTaskFinish(int i) {
-                            Log.i(TAG, "onHeadlessJsTaskFinish: " + i);
-                        }
-                    });
-
-                    UiThreadUtil.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // TODO check if we need to stop task somehow
-                            headlessJsTaskContext.startTask(
-                                    new HeadlessJsTaskConfig(
-                                            "handleBackgroundHCECall",
-                                            Arguments.fromBundle(new Bundle()),
-                                            5000, // timeout in milliseconds for the task
-                                            false // optional: defines whether or not the task is allowed in foreground. Default is false
-                                    ));
-                        }
-                    });
-
-                    reactHost.removeReactInstanceEventListener(this);
-                }
-            });
+            reactHost.addReactInstanceEventListener(this);
             reactHost.start();
         }
     }
@@ -157,12 +152,69 @@ public class HCEService extends HostApduService {
     public void onDeactivated(int reason) {
         Log.d(TAG, "HCEService onDeactivated: " + reason);
 
-        // TODO remove event listeners for headlessJsTaskContext
+        if (isForeground) {
+            getApplicationContext().unregisterReceiver(receiver);
 
-        getApplicationContext().unregisterReceiver(receiver);
+            Intent intent = new Intent(ACTION_READER_LOST);
+            intent.setPackage(getApplicationContext().getPackageName());
+            getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        }
+    }
 
-        Intent intent = new Intent(ACTION_READER_LOST);
-        intent.setPackage(getApplicationContext().getPackageName());
-        getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+    @Override
+    public void onReactContextInitialized(@NonNull ReactContext reactContext) {
+        mhceModule = (RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule");
+        mhceModule.setSessionBeginCallback(new ReadinessCallback() {
+            @Override
+            public void onSessionStarted() {
+                Log.i(TAG, "BBB Received callback onSessionStarted");
+
+                if (cachedCAPDU != null) {
+                    mhceModule.pSendEvent("received", BinaryUtils.ByteArrayToHexString(cachedCAPDU));
+                    cachedCAPDU = null;
+                }
+            }
+
+            @Override
+            public void onRAPDU(String rapdu) {
+                sendResponseApdu(BinaryUtils.HexStringToByteArray(rapdu));
+            }
+        });
+
+        HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
+
+        headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
+            @Override
+            public void onHeadlessJsTaskStart(int i) {
+                Log.i(TAG, "onHeadlessJsTaskStart: " + i);
+
+                // RTNHCEAndroidModule module = (RTNHCEAndroidModule) reactHost.getCurrentReactContext().getNativeModule("NativeHCEModule");
+                //                            module.pSendEvent("lol", "wtf");
+                //Log.i(TAG, "module111");
+                //Log.i(TAG, "module222");
+            }
+
+            @Override
+            public void onHeadlessJsTaskFinish(int i) {
+                Log.i(TAG, "onHeadlessJsTaskFinish: " + i);
+            }
+        });
+
+        UiThreadUtil.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // TODO check if we need to stop task somehow
+                Log.i(TAG, "start task");
+                headlessJsTaskContext.startTask(
+                        new HeadlessJsTaskConfig(
+                                "handleBackgroundHCECall",
+                                Arguments.fromBundle(new Bundle()),
+                                15000,
+                                false // not allowed in foreground
+                        ));
+            }
+        });
+
+        reactHost.removeReactInstanceEventListener(this);
     }
 }

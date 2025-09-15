@@ -7,19 +7,9 @@
 package com.itsecrnd.rtnhceandroid.service;
 
 import static com.facebook.react.jstasks.HeadlessJsTaskContext.Companion;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_DETECT;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_LOST;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_RECEIVE_C_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_SEND_R_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_CAPDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.KEY_RAPDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.PERMISSION_HCE_BROADCAST;
 
 import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.nfc.cardemulation.HostApduService;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,14 +28,14 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig;
 import com.facebook.react.jstasks.HeadlessJsTaskContext;
 import com.facebook.react.jstasks.HeadlessJsTaskEventListener;
 import com.itsecrnd.rtnhceandroid.RTNHCEAndroidModule;
-import com.itsecrnd.rtnhceandroid.ReadinessCallback;
+import com.itsecrnd.rtnhceandroid.HCEServiceInterface;
 import com.itsecrnd.rtnhceandroid.util.BinaryUtils;
 
 import java.util.List;
 import java.util.Locale;
 
 @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-public class HCEService extends HostApduService implements ReactInstanceEventListener {
+public class HCEService extends HostApduService implements ReactInstanceEventListener, HCEServiceInterface {
     private static final String TAG = "HCEService";
 
     private boolean isForeground;
@@ -74,46 +64,29 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         return false;
     }
 
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            try {
-                String action = intent.getAction();
+    @Override
+    public void onSessionStarted() {
+        Log.i(TAG, "BBB Received callback onSessionStarted");
 
-                Log.i(TAG, "onReceive()");
-                if (action != null && action.equals(ACTION_SEND_R_APDU)) {
-                    String rapdu = intent.getStringExtra(KEY_RAPDU);
-
-                    if (rapdu == null) {
-                        throw new RuntimeException("Bug! ACTION_SEND_RAPDU intent KEY_RAPDU is null.");
-                    }
-
-                    byte[] dec = BinaryUtils.HexStringToByteArray(rapdu.toUpperCase(Locale.ROOT));
-                    sendResponseApdu(dec);
-                } else {
-                    Log.w(TAG, "Received unknown action: " + action);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to handle broadcast in HCEService.", e);
-            }
+        if (cachedCAPDU != null) {
+            mhceModule.pSendEvent("received", BinaryUtils.ByteArrayToHexString(cachedCAPDU));
+            cachedCAPDU = null;
         }
-    };
+    }
+
+    @Override
+    public void onRAPDU(String rapdu) {
+        sendResponseApdu(BinaryUtils.HexStringToByteArray(rapdu));
+    }
 
     @Override
     public byte[] processCommandApdu(byte[] command, Bundle extras) {
         String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
-        if (!isForeground) {
-            if (mhceModule != null && mhceModule.checkEventEmitter()) {
-                mhceModule.pSendEvent("received", capdu);
-            } else {
-                cachedCAPDU = command;
-            }
+        if (mhceModule != null && mhceModule.checkEventEmitter()) {
+            mhceModule.pSendEvent("received", capdu);
         } else {
-            Intent intent = new Intent(ACTION_RECEIVE_C_APDU);
-            intent.setPackage(getApplicationContext().getPackageName());
-            intent.putExtra(KEY_CAPDU, capdu);
-            getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+            cachedCAPDU = command;
         }
 
         return null;
@@ -132,19 +105,10 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             Log.d(TAG, "HCEService onCreate foreground");
 
             ReactContext reactContext = reactHost.getCurrentReactContext();
+            this.mhceModule = ((RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule"));
 
-            if (reactContext != null) {
-                ((RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule")).setSessionBeginCallback(null);
-            }
-
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(ACTION_SEND_R_APDU);
-            getApplicationContext().registerReceiver(
-                    receiver, filter, PERMISSION_HCE_BROADCAST, null, RECEIVER_EXPORTED);
-
-            Intent intent = new Intent(ACTION_READER_DETECT);
-            intent.setPackage(getApplicationContext().getPackageName());
-            getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+            this.mhceModule.setHCEService(this);
+            this.mhceModule.pSendEvent("readerDetected", "");
         } else {
             ReactContext reactContext = reactHost.getCurrentReactContext();
             Log.d(TAG, "HCEService onCreate background");
@@ -162,37 +126,13 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     @Override
     public void onDeactivated(int reason) {
         Log.d(TAG, "HCEService onDeactivated: " + reason);
-
-        if (isForeground) {
-            getApplicationContext().unregisterReceiver(receiver);
-
-            Intent intent = new Intent(ACTION_READER_LOST);
-            intent.setPackage(getApplicationContext().getPackageName());
-            getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
-        } else {
-            this.mhceModule.pSendEvent("readerDeselected", "");
-        }
+        this.mhceModule.pSendEvent("readerDeselected", "");
     }
 
     @Override
     public void onReactContextInitialized(@NonNull ReactContext reactContext) {
         mhceModule = (RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule");
-        mhceModule.setSessionBeginCallback(new ReadinessCallback() {
-            @Override
-            public void onSessionStarted() {
-                Log.i(TAG, "BBB Received callback onSessionStarted");
-
-                if (cachedCAPDU != null) {
-                    mhceModule.pSendEvent("received", BinaryUtils.ByteArrayToHexString(cachedCAPDU));
-                    cachedCAPDU = null;
-                }
-            }
-
-            @Override
-            public void onRAPDU(String rapdu) {
-                sendResponseApdu(BinaryUtils.HexStringToByteArray(rapdu));
-            }
-        });
+        mhceModule.setHCEService(this);
 
         HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
         headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
@@ -203,7 +143,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
             @Override
             public void onHeadlessJsTaskFinish(int i) {
-                // TODO task doesn't terminate right away but only on timeout
+                // TODO task doesn't seem to really terminate
                 Log.i(TAG, "onHeadlessJsTaskFinish: " + i);
             }
         });

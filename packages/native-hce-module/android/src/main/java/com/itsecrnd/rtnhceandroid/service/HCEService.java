@@ -1,3 +1,9 @@
+/*
+ * Some of the code inspired by:
+ * https://github.com/appidea/react-native-hce
+ * https://github.com/transistorsoft/react-native-background-fetch
+ */
+
 package com.itsecrnd.rtnhceandroid.service;
 
 import static com.facebook.react.jstasks.HeadlessJsTaskContext.Companion;
@@ -114,6 +120,8 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
     @Override
     public void onCreate() {
+        ReactHost reactHost = ((ReactApplication) getApplication()).getReactHost();
+
         isForeground = isAppOnForeground(getApplicationContext());
         cachedCAPDU = null;
         mhceModule = null;
@@ -121,10 +129,11 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         if (isForeground) {
             Log.d(TAG, "HCEService onCreate foreground");
 
-            // TODO tear down existing react context
-
-            if (mhceModule != null) {
-                mhceModule.setSessionBeginCallback(null);
+            // check if background context was already started
+            ReactContext reactContext = reactHost.getCurrentReactContext();
+            if (reactContext != null) {
+                Log.i(TAG, "Destroy existing React Context from background.");
+                reactContext.destroy();
             }
 
             IntentFilter filter = new IntentFilter();
@@ -136,15 +145,16 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             intent.setPackage(getApplicationContext().getPackageName());
             getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
         } else {
+            ReactContext reactContext = reactHost.getCurrentReactContext();
             Log.d(TAG, "HCEService onCreate background");
+            Log.i(TAG, "Current react context: " + reactContext);
 
-            ReactHost reactHost = ((ReactApplication) getApplication()).getReactHost();
-
-            Log.i(TAG, "React Host lifecycle state: " + reactHost.getLifecycleState().name());
-            Log.i(TAG, "React Host lifecycle state: " + reactHost.getCurrentReactContext());
-
-            reactHost.addReactInstanceEventListener(this);
-            reactHost.start();
+            if (reactContext == null) {
+                reactHost.addReactInstanceEventListener(this);
+                reactHost.start();
+            } else {
+                onReactContextInitialized(reactContext);
+            }
         }
     }
 
@@ -182,20 +192,15 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         });
 
         HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
-
         headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
             @Override
             public void onHeadlessJsTaskStart(int i) {
                 Log.i(TAG, "onHeadlessJsTaskStart: " + i);
-
-                // RTNHCEAndroidModule module = (RTNHCEAndroidModule) reactHost.getCurrentReactContext().getNativeModule("NativeHCEModule");
-                //                            module.pSendEvent("lol", "wtf");
-                //Log.i(TAG, "module111");
-                //Log.i(TAG, "module222");
             }
 
             @Override
             public void onHeadlessJsTaskFinish(int i) {
+                // TODO task doesn't terminate right away but only on timeout
                 Log.i(TAG, "onHeadlessJsTaskFinish: " + i);
             }
         });
@@ -203,7 +208,6 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         UiThreadUtil.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // TODO check if we need to stop task somehow
                 Log.i(TAG, "start task");
                 headlessJsTaskContext.startTask(
                         new HeadlessJsTaskConfig(
@@ -214,7 +218,5 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
                         ));
             }
         });
-
-        reactHost.removeReactInstanceEventListener(this);
     }
 }

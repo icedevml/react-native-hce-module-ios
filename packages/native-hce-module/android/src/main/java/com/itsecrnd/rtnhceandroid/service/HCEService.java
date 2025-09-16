@@ -66,9 +66,10 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
     @Override
     public void onSessionStarted() {
-        Log.i(TAG, "BBB Received callback onSessionStarted");
+        Log.i(TAG, "HCEService:onSessionStarted");
 
         if (cachedCAPDU != null) {
+            Log.i(TAG, "HCEService:onSessionStarted send cachedCAPDU");
             mhceModule.pSendEvent("received", BinaryUtils.ByteArrayToHexString(cachedCAPDU));
             cachedCAPDU = null;
         }
@@ -76,16 +77,20 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
     @Override
     public void onRAPDU(String rapdu) {
+        Log.i(TAG, "HCEService:onRAPDU");
         sendResponseApdu(BinaryUtils.HexStringToByteArray(rapdu));
     }
 
     @Override
     public byte[] processCommandApdu(byte[] command, Bundle extras) {
+        Log.i(TAG, "HCEService:processCommandApdu");
         String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
         if (mhceModule != null && mhceModule.checkEventEmitter()) {
+            Log.i(TAG, "HCEService:processComandApdu send event");
             mhceModule.pSendEvent("received", capdu);
         } else {
+            Log.i(TAG, "HCEService:processComandApdu set cached apdu");
             cachedCAPDU = command;
         }
 
@@ -94,6 +99,8 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
     @Override
     public void onCreate() {
+        Log.i(TAG, "HCEService:onCreate");
+
         ReactHost reactHost = ((ReactApplication) getApplication()).getReactHost();
         Log.i(TAG, "ReactHost: " + reactHost);
 
@@ -151,7 +158,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         UiThreadUtil.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Log.i(TAG, "start task");
+                Log.i(TAG, "onReactContextInitialized startTask");
                 headlessJsTaskContext.startTask(
                         new HeadlessJsTaskConfig(
                                 "handleBackgroundHCECall",
@@ -161,5 +168,12 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
                         ));
             }
         });
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        Log.i(TAG, "HCEService onDestroy()");
     }
 }

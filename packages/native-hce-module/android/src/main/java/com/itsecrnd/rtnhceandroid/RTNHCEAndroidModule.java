@@ -24,6 +24,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     private HCEServiceInterface cb;
 
     private void sendEvent(final String type, final String arg) {
+        Log.i(TAG, "RTNHCEAndroidModule:sendEvent");
         WritableMap map = Arguments.createMap();
         map.putString("type", type);
         map.putString("arg", arg);
@@ -44,17 +45,19 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void invalidate() {
-
+        Log.i(TAG, "RTNHCEAndroidModule:invalidate");
     }
 
     @Override
     @NonNull
     public String getName() {
+        Log.i(TAG, "RTNHCEAndroidModule:getName");
         return RTNHCEAndroidModule.NAME;
     }
 
     @Override
     public boolean isPlatformSupported() {
+        Log.i(TAG, "RTNHCEAndroidModule:isPlatformSupported");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return false;
         }
@@ -66,17 +69,21 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void acquireExclusiveNFC(Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:acquireExclusiveNFC");
         promise.reject("err_platform_unsupported", "acquireExclusiveNFC() is not supported on Android.");
     }
 
     @Override
     public boolean isExclusiveNFC() {
+        Log.i(TAG, "RTNHCEAndroidModule:isExclusiveNFC");
         // unsupported on Android, always false
         return false;
     }
 
     @Override
     public void beginSession(Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:beginSession");
+
         if (!isPlatformSupported()) {
             promise.reject("err_platform_unsupported", "Unsupported Android version or missing NFC/HCE feature.");
             return;
@@ -97,11 +104,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void setSessionAlertMessage(String message) {
+        Log.i(TAG, "RTNHCEAndroidModule:setSessionAlertMessage");
         // unsupported on Android, no-op
     }
 
     @Override
     public void invalidateSession() {
+        Log.i(TAG, "RTNHCEAndroidModule:invalidateSession");
         if (this.sessionRunning) {
             this.sessionRunning = false;
             sendEvent("sessionInvalidated", "userInvalidated");
@@ -110,11 +119,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public boolean isSessionRunning() {
+        Log.i(TAG, "RTNHCEAndroidModule:isSessionRunning");
         return this.sessionRunning;
     }
 
     @Override
     public void startHCE(Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:startHCE");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -131,6 +142,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void stopHCE(String status, Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:stopHCE");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -152,6 +164,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:respondAPDU");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -168,19 +181,22 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void isHCERunning(Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:isHCERunning");
         promise.resolve(this.hceRunning);
     }
 
     public boolean checkEventEmitter() {
-        Log.i(TAG, "BBB has event emitter? " + mEventEmitterCallback);
+        Log.i(TAG, "RTNHCEAndroidModule:checkEventEmitter " + mEventEmitterCallback);
         return mEventEmitterCallback != null;
     }
 
     public void setHCEService(HCEServiceInterface cb) {
+        Log.i(TAG, "RTNHCEAndroidModule:setHCEService");
         this.cb = cb;
     }
 
     public void pSendEvent(final String type, final String arg) {
+        Log.i(TAG, "RTNHCEAndroidModule:pSendEvent");
         sendEvent(type, arg);
     }
 }

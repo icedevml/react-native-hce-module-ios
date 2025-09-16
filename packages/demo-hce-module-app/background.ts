@@ -6,18 +6,13 @@ import NativeHCEModule, {
 
 
 export default async function run() {
-  console.log('background:run()')
+  console.debug('background:run()')
 
   let subscription = NativeHCEModule?.onBackgroundEvent(async (event: HCEModuleBackgroundEvent) => {
     try {
-      console.log('background:received event', event);
+      console.debug('background:received event', event);
 
       switch (event.type) {
-        case 'readerDeselected':
-          console.log('remove subscription');
-          subscription.remove();
-          break;
-
         case 'received':
           const capdu = Buffer.from(event.arg!, 'hex');
           // for the demo, we just respond with the reversed C-APDU and success status 9000
@@ -26,24 +21,28 @@ export default async function run() {
             Buffer.from([0x90, 0x00]),
           ]);
 
-          console.log('Received C-APDU: ', capdu.toString('hex'));
-          console.log('Sending R-APDU: ', rapdu.toString('hex'));
+          console.debug('Received C-APDU: ', capdu.toString('hex'));
+          console.debug('Sending R-APDU: ', rapdu.toString('hex'));
 
-          console.log('respond apdu', NativeHCEModule?.respondAPDU);
+          console.debug('respond apdu', NativeHCEModule?.respondAPDU);
           await NativeHCEModule?.respondAPDU(rapdu.toString('hex'));
-          console.log('responded');
+          console.debug('responded');
+          break;
+
+        case 'readerDeselected':
+          console.debug('remove subscription');
+          subscription.remove();
           break;
       }
 
-      console.log('end of handler');
+      console.debug('end of handler');
     } catch (err) {
-      console.log('error in event handler');
-      console.error('error in event handler', err);
+      console.error('error in background handler', err);
     }
 
-    console.log('background:end of onEvent');
+    console.debug('background:end of onEvent');
   });
 
   await NativeHCEModule?.initBackgroundHCE();
-  console.log('background:end of run');
+  console.debug('background:end of run');
 }

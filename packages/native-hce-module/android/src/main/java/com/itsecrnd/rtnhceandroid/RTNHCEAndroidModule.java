@@ -221,13 +221,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             }
         }
 
-        if (!this.hceBrokenConnection) {
-            Log.d(TAG, "respondAPDU(): Send to service");
-            serviceCb.onRespondAPDU(rapdu);
-        } else {
-            Log.d(TAG, "respondAPDU(): Broken connection, respond with 6999");
-            serviceCb.onRespondAPDU("6999");
-        }
+        Log.d(TAG, "respondAPDU(): Send to service");
+        serviceCb.onRespondAPDU(rapdu);
 
         promise.resolve(null);
     }

@@ -83,9 +83,14 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         Log.d(TAG, "HCEService:processCommandApdu");
         String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
-        if (isForeground && hceModule._isHCERunning() && !hceModule.isHCEBrokenConnection()) {
-            Log.d(TAG, "HCEService:processCommandApdu foreground sendEvent received");
-            hceModule.sendEvent("received", capdu);
+        if (isForeground) {
+            if (hceModule._isHCERunning() && !hceModule.isHCEBrokenConnection()) {
+                Log.d(TAG, "HCEService:processCommandApdu foreground sendEvent received");
+                hceModule.sendEvent("received", capdu);
+            } else {
+                Log.d(TAG, "HCEService:processCommandApdu foreground respond 6999");
+                return new byte[] { (byte) 0x69, (byte) 0x99 };
+            }
         } else {
             if (hceModule != null && hceModule.isHCEBackgroundHandlerReady()) {
                 Log.d(TAG, "HCEService:processCommandApdu background sendBackgroundEvent received");

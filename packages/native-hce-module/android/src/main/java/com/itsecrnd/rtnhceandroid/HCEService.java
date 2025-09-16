@@ -38,6 +38,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     private boolean isForeground;
     private RTNHCEAndroidModule hceModule;
     private byte[] pendingCAPDU;
+    private volatile boolean needsResponse;
 
     private boolean isAppOnForeground(Context context) {
         /*
@@ -75,6 +76,13 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     @Override
     public void onRespondAPDU(String rapdu) {
         Log.d(TAG, "HCEService:onRespondAPDU");
+
+        if (!needsResponse) {
+            Log.d(TAG, "HCEService:onRespondAPDU not waiting for a response");
+            throw new IllegalStateException();
+        }
+
+        needsResponse = false;
         sendResponseApdu(BinaryUtils.HexStringToByteArray(rapdu));
     }
 
@@ -86,6 +94,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         if (isForeground) {
             if (hceModule._isHCERunning() && !hceModule.isHCEBrokenConnection()) {
                 Log.d(TAG, "HCEService:processCommandApdu foreground sendEvent received");
+                needsResponse = true;
                 hceModule.sendEvent("received", capdu);
             } else {
                 Log.d(TAG, "HCEService:processCommandApdu foreground respond 6999");
@@ -94,9 +103,11 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         } else {
             if (hceModule != null && hceModule.isHCEBackgroundHandlerReady()) {
                 Log.d(TAG, "HCEService:processCommandApdu background sendBackgroundEvent received");
+                needsResponse = true;
                 hceModule.sendBackgroundEvent("received", capdu);
             } else {
                 Log.d(TAG, "HCEService:processCommandApdu background pendingCAPDU");
+                needsResponse = true;
                 pendingCAPDU = command;
             }
         }
@@ -117,6 +128,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         isForeground = isAppOnForeground(getApplicationContext());
         pendingCAPDU = null;
         hceModule = null;
+        needsResponse = false;
 
         if (isForeground) {
             Log.d(TAG, "HCEService:onCreate foreground");
@@ -156,6 +168,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     @Override
     public void onDeactivated(int reason) {
         Log.d(TAG, "HCEService:onDeactivated: " + reason);
+        needsResponse = false;
 
         if (isForeground) {
             if (this.hceModule != null && !this.hceModule.isHCEBrokenConnection()) {

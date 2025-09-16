@@ -222,7 +222,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         }
 
         Log.d(TAG, "respondAPDU(): Send to service");
-        serviceCb.onRespondAPDU(rapdu);
+
+        try {
+            serviceCb.onRespondAPDU(rapdu);
+        } catch (IllegalStateException e) {
+            promise.reject("err_no_capdu", "There is no C-APDU to respond to at the time.");
+            return;
+        }
 
         promise.resolve(null);
     }

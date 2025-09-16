@@ -19,54 +19,80 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     private volatile boolean sessionRunning;
     private volatile boolean hceRunning;
     private volatile boolean hceDeselected;
+    private volatile boolean hceBrokenConnection;
 
     private volatile boolean hceBackgroundReady;
 
-    private HCEServiceInterface cb;
+    private HCEServiceCallback serviceCb;
 
-    public void sendEvent(final String type, final String arg) {
-        Log.i(TAG, "RTNHCEAndroidModule:sendEvent");
+    RTNHCEAndroidModule(ReactApplicationContext context) {
+        super(context);
+
+        this.serviceCb = null;
+
+        this.sessionRunning = false;
+        this.hceRunning = false;
+        this.hceDeselected = true;
+        this.hceBrokenConnection = false;
+        this.hceBackgroundReady = false;
+    }
+
+    @Override
+    public void invalidate() {
+        Log.d(TAG, "RTNHCEAndroidModule:invalidate");
+    }
+
+    @Override
+    @NonNull
+    public String getName() {
+        Log.d(TAG, "RTNHCEAndroidModule:getName");
+        return RTNHCEAndroidModule.NAME;
+    }
+
+    void sendEvent(final String type, final String arg) {
+        Log.d(TAG, "RTNHCEAndroidModule:sendEvent");
         WritableMap map = Arguments.createMap();
         map.putString("type", type);
         map.putString("arg", arg);
         emitOnEvent(map);
     }
 
-    public void sendBackgroundEvent(final String type, final String arg) {
-        Log.i(TAG, "RTNHCEAndroidModule:sendBackgroundEvent");
+    void sendBackgroundEvent(final String type, final String arg) {
+        Log.d(TAG, "RTNHCEAndroidModule:sendBackgroundEvent");
         WritableMap map = Arguments.createMap();
         map.putString("type", type);
         map.putString("arg", arg);
         emitOnBackgroundEvent(map);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    RTNHCEAndroidModule(ReactApplicationContext context) {
-        super(context);
+    boolean _isHCERunning() {
+        return this.hceRunning;
+    }
 
-        this.cb = null;
+    void setHCEBrokenConnection() {
+        this.hceBrokenConnection = true;
+    }
 
-        this.sessionRunning = false;
-        this.hceRunning = false;
+    boolean isHCEBackgroundHandlerReady() {
+        return this.hceBackgroundReady;
+    }
+
+    boolean isHCEBrokenConnection() {
+        return this.hceBrokenConnection;
+    }
+
+    void setHCEService(HCEServiceCallback serviceCallback) {
+        Log.d(TAG, "RTNHCEAndroidModule:setHCEService");
+
+        this.serviceCb = serviceCallback;
         this.hceDeselected = true;
         this.hceBackgroundReady = false;
-    }
-
-    @Override
-    public void invalidate() {
-        Log.i(TAG, "RTNHCEAndroidModule:invalidate");
-    }
-
-    @Override
-    @NonNull
-    public String getName() {
-        Log.i(TAG, "RTNHCEAndroidModule:getName");
-        return RTNHCEAndroidModule.NAME;
+        this.hceBrokenConnection = false;
     }
 
     @Override
     public boolean isPlatformSupported() {
-        Log.i(TAG, "RTNHCEAndroidModule:isPlatformSupported");
+        Log.d(TAG, "RTNHCEAndroidModule:isPlatformSupported");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return false;
         }
@@ -78,20 +104,20 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void acquireExclusiveNFC(Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:acquireExclusiveNFC");
+        Log.d(TAG, "RTNHCEAndroidModule:acquireExclusiveNFC");
         promise.reject("err_platform_unsupported", "acquireExclusiveNFC() is not supported on Android.");
     }
 
     @Override
     public boolean isExclusiveNFC() {
-        Log.i(TAG, "RTNHCEAndroidModule:isExclusiveNFC");
+        Log.d(TAG, "RTNHCEAndroidModule:isExclusiveNFC");
         // unsupported on Android, always false
         return false;
     }
 
     @Override
     public void beginSession(Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:beginSession");
+        Log.d(TAG, "RTNHCEAndroidModule:beginSession");
 
         if (!isPlatformSupported()) {
             promise.reject("err_platform_unsupported", "Unsupported Android version or missing NFC/HCE feature.");
@@ -109,40 +135,41 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void setSessionAlertMessage(String message) {
-        Log.i(TAG, "RTNHCEAndroidModule:setSessionAlertMessage");
+        Log.d(TAG, "RTNHCEAndroidModule:setSessionAlertMessage");
         // unsupported on Android, no-op
     }
 
     @Override
     public void invalidateSession() {
-        Log.i(TAG, "RTNHCEAndroidModule:invalidateSession");
+        Log.d(TAG, "RTNHCEAndroidModule:invalidateSession");
         if (this.sessionRunning) {
-            this.hceRunning = false; // FIXME
+            this.hceRunning = false;
             this.sessionRunning = false;
+            this.hceBrokenConnection = true;
             sendEvent("sessionInvalidated", "userInvalidated");
         }
     }
 
     @Override
     public boolean isSessionRunning() {
-        Log.i(TAG, "RTNHCEAndroidModule:isSessionRunning");
+        Log.d(TAG, "RTNHCEAndroidModule:isSessionRunning");
         return this.sessionRunning;
     }
 
     @Override
     public void initBackgroundHCE(Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
+        Log.d(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
 
         this.hceBackgroundReady = true;
 
         promise.resolve(null);
 
-        this.cb.onBackgroundHCEStarted();
+        this.serviceCb.onBackgroundHCEInit();
     }
 
     @Override
     public void startHCE(Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:startHCE");
+        Log.d(TAG, "RTNHCEAndroidModule:startHCE");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -154,12 +181,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         }
 
         this.hceRunning = true;
+        this.hceBrokenConnection = false;
         promise.resolve(null);
     }
 
     @Override
     public void stopHCE(String status, Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:stopHCE");
+        Log.d(TAG, "RTNHCEAndroidModule:stopHCE");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -170,6 +198,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
             if (!this.hceDeselected) {
                 this.hceDeselected = true;
+                this.hceBrokenConnection = true;
                 sendEvent("readerDeselected", "");
             }
         }
@@ -180,7 +209,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:respondAPDU");
+        Log.d(TAG, "RTNHCEAndroidModule:respondAPDU");
 
         if (!this.hceBackgroundReady) {
             if (!this.sessionRunning) {
@@ -192,27 +221,20 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             }
         }
 
-        Log.i(TAG, "respondAPDU(): Send to callback");
-        cb.onRAPDU(rapdu);
+        if (!this.hceBrokenConnection) {
+            Log.d(TAG, "respondAPDU(): Send to service");
+            serviceCb.onRespondAPDU(rapdu);
+        } else {
+            Log.d(TAG, "respondAPDU(): Broken connection, respond with 6999");
+            serviceCb.onRespondAPDU("6999");
+        }
 
         promise.resolve(null);
     }
 
     @Override
     public void isHCERunning(Promise promise) {
-        Log.i(TAG, "RTNHCEAndroidModule:isHCERunning");
+        Log.d(TAG, "RTNHCEAndroidModule:isHCERunning");
         promise.resolve(this.hceRunning);
-    }
-
-    public boolean isHCEBackgroundHandlerReady() {
-        return hceBackgroundReady;
-    }
-
-    public void setHCEService(HCEServiceInterface cb) {
-        Log.i(TAG, "RTNHCEAndroidModule:setHCEService");
-
-        this.cb = cb;
-        this.hceDeselected = true;
-        this.hceBackgroundReady = false;
     }
 }

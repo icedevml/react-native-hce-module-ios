@@ -76,7 +76,7 @@ Afterwards, follow the subsections below for each platform that you need to supp
         ...
    
    +    <service
-   +      android:name="com.itsecrnd.rtnhceandroid.service.HCEService"
+   +      android:name="com.itsecrnd.rtnhceandroid.HCEService"
    +      android:exported="true"
    +      android:enabled="true"
    +      android:permission="android.permission.BIND_NFC_SERVICE">

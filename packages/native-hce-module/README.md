@@ -181,6 +181,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
    You don't have to respond to the APDU right away from within the event handler, but please remember that the reader might time out if you will be lingering with the response for too long.
 
 ### iOS: Acquiring exclusive NFC access
+
 If you need to utilize `NFCPresentmentIntentAssertion` for enhanced user experience, call:
 ```typescript
 NativeHCEModule?.acquireExclusiveNFC();
@@ -193,6 +194,51 @@ This function will throw an exception if:
 * the feature is not supported or the device is not eligible for whatever reason;
 
 Call `NativeHCEModule?.isExclusiveNFC()` to check if exclusive NFC access is still active.
+
+### Android: Handle HCE calls when the app is not running
+
+Exclusively on Android platform it is possible to handle Host Card Emulation even when the app is not running in foreground.
+In such case, no user interface will be available, the handler will run in headless mode. This is still extremely useful in certain cases,
+for instance - your app may emulate an NDEF tag even when it's not launched on the foreground.
+
+1. Register `handleBackgroundHCECall` headless task in your app's `index.js`:
+   ```typescript
+   AppRegistry.registerHeadlessTask('handleBackgroundHCECall', () => {
+      return async () => {
+         return await runBackground();
+      }
+   });
+   ```
+2. Register onBackgroundEvent listener in your `runBackground()` function and call to `await NativeHCEModule?.initBackgroundHCE()` at the very end, after the event listener is fully set up.
+   ```typescript
+   async function runBackground() {
+      let subscription = NativeHCEModule?.onBackgroundEvent(async (event: HCEModuleBackgroundEvent) => {
+         switch (event.type) {
+            /* ... background HCE event handler here ... */
+         }
+      });
+   
+      await NativeHCEModule?.initBackgroundHCE();
+   }
+   ```
+3. Cleanup your event listener in `readerDeselected` -- this is obligatory because lack of proper cleanup will result in bugs and unexpected behavior.
+   ```typescript
+   case 'readerDeselected':
+       // cleanup, remove the event listener
+       subscription.remove();
+       break;
+   ```
+4. Implement the actual APDU handler that will process the C-APDU and generate a response.
+   ```typescript
+   case 'received':
+       // decode incoming C-APDU to bytes
+       const capdu = Buffer.from(event.arg!, 'hex');
+       console.log('Received C-APDU, capdu.toString('hex'));
+      
+       // for the demo purposes, we always want to respond with [0x0A] + status code 0x9000 (success)
+       await NativeHCEModule?.respondAPDU(Buffer.from([0x0A, 0x90, 0x00], "hex"));
+       break;
+   ```
 
 ### More resources
 

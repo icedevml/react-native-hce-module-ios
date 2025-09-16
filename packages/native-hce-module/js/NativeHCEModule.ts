@@ -1,7 +1,8 @@
 import type {TurboModule, CodegenTypes} from 'react-native';
 import {TurboModuleRegistry} from 'react-native';
 
-export type HCEModuleEventType = 'sessionStarted'
+export type HCEModuleEventType =
+    'sessionStarted'
     | 'sessionInvalidated'
     /**
      * iOS: Whether the reader field was detected.
@@ -19,8 +20,17 @@ export type HCEModuleEventType = 'sessionStarted'
     | 'received';
 export type HCEModuleStopReason = 'success' | 'failure';
 
+export type HCEModuleBackgroundEventType =
+    'readerDeselected'
+    | 'received';
+
 export type HCEModuleEvent = {
   type: HCEModuleEventType
+  arg: string | null,
+}
+
+export type HCEModuleBackgroundEvent = {
+  type: HCEModuleBackgroundEventType
   arg: string | null,
 }
 
@@ -63,6 +73,8 @@ export interface Spec extends TurboModule {
    */
   isSessionRunning(): boolean;
 
+  initBackgroundHCE(): Promise<void>;
+
   /**
    * iOS: Start the card emulation.
    * Android: Enable HCE service.
@@ -84,6 +96,7 @@ export interface Spec extends TurboModule {
   isHCERunning(): Promise<boolean>;
 
   readonly onEvent: CodegenTypes.EventEmitter<HCEModuleEvent>;
+  readonly onBackgroundEvent: CodegenTypes.EventEmitter<HCEModuleBackgroundEvent>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>(

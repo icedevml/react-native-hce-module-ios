@@ -1,16 +1,5 @@
 package com.itsecrnd.rtnhceandroid;
 
-import static android.content.Context.RECEIVER_EXPORTED;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_DETECT;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_READER_LOST;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_RECEIVE_C_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.ACTION_SEND_R_APDU;
-import static com.itsecrnd.rtnhceandroid.IntentKeys.PERMISSION_HCE_BROADCAST;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
@@ -29,102 +18,81 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     private volatile boolean sessionRunning;
     private volatile boolean hceRunning;
-    private volatile boolean hceBreakConnection;
     private volatile boolean hceDeselected;
+    private volatile boolean hceBrokenConnection;
 
-    private void sendEvent(final String type, final String arg) {
+    private volatile boolean hceBackgroundReady;
+
+    private HCEServiceCallback serviceCb;
+
+    RTNHCEAndroidModule(ReactApplicationContext context) {
+        super(context);
+
+        this.serviceCb = null;
+
+        this.sessionRunning = false;
+        this.hceRunning = false;
+        this.hceDeselected = true;
+        this.hceBrokenConnection = false;
+        this.hceBackgroundReady = false;
+    }
+
+    @Override
+    public void invalidate() {
+        Log.d(TAG, "RTNHCEAndroidModule:invalidate");
+    }
+
+    @Override
+    @NonNull
+    public String getName() {
+        Log.d(TAG, "RTNHCEAndroidModule:getName");
+        return RTNHCEAndroidModule.NAME;
+    }
+
+    void sendEvent(final String type, final String arg) {
+        Log.d(TAG, "RTNHCEAndroidModule:sendEvent");
         WritableMap map = Arguments.createMap();
         map.putString("type", type);
         map.putString("arg", arg);
         emitOnEvent(map);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            try {
-                String action = intent.getAction();
+    void sendBackgroundEvent(final String type, final String arg) {
+        Log.d(TAG, "RTNHCEAndroidModule:sendBackgroundEvent");
+        WritableMap map = Arguments.createMap();
+        map.putString("type", type);
+        map.putString("arg", arg);
+        emitOnBackgroundEvent(map);
+    }
 
-                if (action == null) {
-                    Log.w(TAG, "Received intent with null action in module receiver.");
-                    return;
-                }
+    boolean _isHCERunning() {
+        return this.hceRunning;
+    }
 
-                if (action.equals(ACTION_RECEIVE_C_APDU)) {
-                    String capdu = intent.getStringExtra("capdu");
+    void setHCEBrokenConnection() {
+        this.hceBrokenConnection = true;
+    }
 
-                    if (!hceBreakConnection && hceRunning) {
-                        sendEvent("received", capdu);
-                    } else {
-                        // HCE is already disabled or was just disabled while the HCEService was running
-                        // don't forward C-APDUs to the application and just respond 6999 to everything
-                        Intent rintent = new Intent(ACTION_SEND_R_APDU);
-                        rintent.setPackage(getReactApplicationContext().getPackageName());
-                        rintent.putExtra("rapdu", "6999");
-                        getReactApplicationContext().getApplicationContext().sendBroadcast(rintent, PERMISSION_HCE_BROADCAST);
-                    }
-                } else if (action.equals(ACTION_READER_DETECT)) {
-                    if (hceRunning) {
-                        hceDeselected = false;
-                        sendEvent("readerDetected", "");
-                    }
-                } else if (action.equals(ACTION_READER_LOST)) {
-                    if (hceRunning && !hceBreakConnection && !hceDeselected) {
-                        // only if we haven't send a fake disconnect event already
-                        hceDeselected = true;
-                        sendEvent("readerDeselected", "");
-                    }
+    boolean isHCEBackgroundHandlerReady() {
+        return this.hceBackgroundReady;
+    }
 
-                    hceBreakConnection = false;
-                } else {
-                    Log.w(TAG, "Received unknown action intent in module receiver: " + action);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to handle broadcast in RTNHCEAndroidModule.", e);
-            }
-        }
-    };
+    boolean isHCEBrokenConnection() {
+        return this.hceBrokenConnection;
+    }
 
-    RTNHCEAndroidModule(ReactApplicationContext context) {
-        super(context);
+    void setHCEService(HCEServiceCallback serviceCallback) {
+        Log.d(TAG, "RTNHCEAndroidModule:setHCEService");
 
-        this.sessionRunning = false;
-        this.hceRunning = false;
-        this.hceBreakConnection = false;
+        this.serviceCb = serviceCallback;
         this.hceDeselected = true;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(ACTION_RECEIVE_C_APDU);
-            filter.addAction(ACTION_READER_DETECT);
-            filter.addAction(ACTION_READER_LOST);
-
-            getReactApplicationContext().getApplicationContext().registerReceiver(
-                    receiver,
-                    filter,
-                    PERMISSION_HCE_BROADCAST,
-                    null,
-                    RECEIVER_EXPORTED
-            );
-        }
-    }
-
-    @Override
-    public void invalidate() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getReactApplicationContext().getApplicationContext().unregisterReceiver(receiver);
-        }
-    }
-
-    @Override
-    @NonNull
-    public String getName() {
-        return RTNHCEAndroidModule.NAME;
+        this.hceBackgroundReady = false;
+        this.hceBrokenConnection = false;
     }
 
     @Override
     public boolean isPlatformSupported() {
+        Log.d(TAG, "RTNHCEAndroidModule:isPlatformSupported");
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return false;
         }
@@ -136,17 +104,21 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void acquireExclusiveNFC(Promise promise) {
+        Log.d(TAG, "RTNHCEAndroidModule:acquireExclusiveNFC");
         promise.reject("err_platform_unsupported", "acquireExclusiveNFC() is not supported on Android.");
     }
 
     @Override
     public boolean isExclusiveNFC() {
+        Log.d(TAG, "RTNHCEAndroidModule:isExclusiveNFC");
         // unsupported on Android, always false
         return false;
     }
 
     @Override
     public void beginSession(Promise promise) {
+        Log.d(TAG, "RTNHCEAndroidModule:beginSession");
+
         if (!isPlatformSupported()) {
             promise.reject("err_platform_unsupported", "Unsupported Android version or missing NFC/HCE feature.");
             return;
@@ -163,24 +135,41 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @Override
     public void setSessionAlertMessage(String message) {
+        Log.d(TAG, "RTNHCEAndroidModule:setSessionAlertMessage");
         // unsupported on Android, no-op
     }
 
     @Override
     public void invalidateSession() {
+        Log.d(TAG, "RTNHCEAndroidModule:invalidateSession");
         if (this.sessionRunning) {
+            this.hceRunning = false;
             this.sessionRunning = false;
+            this.hceBrokenConnection = true;
             sendEvent("sessionInvalidated", "userInvalidated");
         }
     }
 
     @Override
     public boolean isSessionRunning() {
+        Log.d(TAG, "RTNHCEAndroidModule:isSessionRunning");
         return this.sessionRunning;
     }
 
     @Override
+    public void initBackgroundHCE(Promise promise) {
+        Log.d(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
+
+        this.hceBackgroundReady = true;
+
+        promise.resolve(null);
+
+        this.serviceCb.onBackgroundHCEInit();
+    }
+
+    @Override
     public void startHCE(Promise promise) {
+        Log.d(TAG, "RTNHCEAndroidModule:startHCE");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -192,11 +181,13 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         }
 
         this.hceRunning = true;
+        this.hceBrokenConnection = false;
         promise.resolve(null);
     }
 
     @Override
     public void stopHCE(String status, Promise promise) {
+        Log.d(TAG, "RTNHCEAndroidModule:stopHCE");
         if (!this.sessionRunning) {
             promise.reject("err_no_session", "No session is active.");
             return;
@@ -207,7 +198,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
             if (!this.hceDeselected) {
                 this.hceDeselected = true;
-                this.hceBreakConnection = true;
+                this.hceBrokenConnection = true;
                 sendEvent("readerDeselected", "");
             }
         }
@@ -218,24 +209,33 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
-        if (!this.sessionRunning) {
-            promise.reject("err_no_session", "No session is active.");
-            return;
-        } else if (!this.hceRunning) {
-            promise.reject("err_no_hce", "HCE is not running.");
-            return;
+        Log.d(TAG, "RTNHCEAndroidModule:respondAPDU");
+
+        if (!this.hceBackgroundReady) {
+            if (!this.sessionRunning) {
+                promise.reject("err_no_session", "No session is active.");
+                return;
+            } else if (!this.hceRunning) {
+                promise.reject("err_no_hce", "HCE is not running.");
+                return;
+            }
         }
 
-        Intent intent = new Intent(ACTION_SEND_R_APDU);
-        intent.setPackage(getReactApplicationContext().getPackageName());
-        intent.putExtra("rapdu", rapdu);
-        getReactApplicationContext().getApplicationContext().sendBroadcast(intent, PERMISSION_HCE_BROADCAST);
+        Log.d(TAG, "respondAPDU(): Send to service");
+
+        try {
+            serviceCb.onRespondAPDU(rapdu);
+        } catch (IllegalStateException e) {
+            promise.reject("err_no_capdu", "There is no C-APDU to respond to at the time.");
+            return;
+        }
 
         promise.resolve(null);
     }
 
     @Override
     public void isHCERunning(Promise promise) {
+        Log.d(TAG, "RTNHCEAndroidModule:isHCERunning");
         promise.resolve(this.hceRunning);
     }
 }

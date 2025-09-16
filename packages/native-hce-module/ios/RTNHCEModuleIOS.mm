@@ -86,6 +86,10 @@
     }
 }
 
+- (void)initBackgroundHCE:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
+    reject(@"err_platform_unsupported", @"Background HCE is not supported on iOS.", nil);
+}
+
 - (void)startHCE:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
     if (@available(iOS 17.4, *)) {
         return [hcemoduleios startHCEWithResolve:resolve reject:reject];

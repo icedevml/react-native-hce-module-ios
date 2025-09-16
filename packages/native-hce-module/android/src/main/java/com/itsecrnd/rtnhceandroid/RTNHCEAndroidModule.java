@@ -18,17 +18,26 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     private volatile boolean sessionRunning;
     private volatile boolean hceRunning;
-    // TODO not implemented
-    private volatile boolean hceBreakConnection;
     private volatile boolean hceDeselected;
+
+    private volatile boolean hceBackgroundReady;
+
     private HCEServiceInterface cb;
 
-    private void sendEvent(final String type, final String arg) {
+    public void sendEvent(final String type, final String arg) {
         Log.i(TAG, "RTNHCEAndroidModule:sendEvent");
         WritableMap map = Arguments.createMap();
         map.putString("type", type);
         map.putString("arg", arg);
         emitOnEvent(map);
+    }
+
+    public void sendBackgroundEvent(final String type, final String arg) {
+        Log.i(TAG, "RTNHCEAndroidModule:sendBackgroundEvent");
+        WritableMap map = Arguments.createMap();
+        map.putString("type", type);
+        map.putString("arg", arg);
+        emitOnBackgroundEvent(map);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
@@ -39,8 +48,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
         this.sessionRunning = false;
         this.hceRunning = false;
-        this.hceBreakConnection = false;
         this.hceDeselected = true;
+        this.hceBackgroundReady = false;
     }
 
     @Override
@@ -93,10 +102,6 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
             this.sessionRunning = true;
             sendEvent("sessionStarted", "");
             promise.resolve(null);
-
-            if (cb != null) {
-                cb.onSessionStarted();
-            }
         } else {
             promise.reject("err_card_session_exists", "Session already exists.");
         }
@@ -112,6 +117,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public void invalidateSession() {
         Log.i(TAG, "RTNHCEAndroidModule:invalidateSession");
         if (this.sessionRunning) {
+            this.hceRunning = false; // FIXME
             this.sessionRunning = false;
             sendEvent("sessionInvalidated", "userInvalidated");
         }
@@ -121,6 +127,17 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     public boolean isSessionRunning() {
         Log.i(TAG, "RTNHCEAndroidModule:isSessionRunning");
         return this.sessionRunning;
+    }
+
+    @Override
+    public void initBackgroundHCE(Promise promise) {
+        Log.i(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
+
+        this.hceBackgroundReady = true;
+
+        promise.resolve(null);
+
+        this.cb.onBackgroundHCEStarted();
     }
 
     @Override
@@ -153,7 +170,6 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
             if (!this.hceDeselected) {
                 this.hceDeselected = true;
-                this.hceBreakConnection = true;
                 sendEvent("readerDeselected", "");
             }
         }
@@ -165,12 +181,15 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     @Override
     public void respondAPDU(String rapdu, Promise promise) {
         Log.i(TAG, "RTNHCEAndroidModule:respondAPDU");
-        if (!this.sessionRunning) {
-            promise.reject("err_no_session", "No session is active.");
-            return;
-        } else if (!this.hceRunning) {
-            promise.reject("err_no_hce", "HCE is not running.");
-            return;
+
+        if (!this.hceBackgroundReady) {
+            if (!this.sessionRunning) {
+                promise.reject("err_no_session", "No session is active.");
+                return;
+            } else if (!this.hceRunning) {
+                promise.reject("err_no_hce", "HCE is not running.");
+                return;
+            }
         }
 
         Log.i(TAG, "respondAPDU(): Send to callback");
@@ -185,18 +204,15 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         promise.resolve(this.hceRunning);
     }
 
-    public boolean checkEventEmitter() {
-        Log.i(TAG, "RTNHCEAndroidModule:checkEventEmitter " + mEventEmitterCallback);
-        return mEventEmitterCallback != null;
+    public boolean isHCEBackgroundHandlerReady() {
+        return hceBackgroundReady;
     }
 
     public void setHCEService(HCEServiceInterface cb) {
         Log.i(TAG, "RTNHCEAndroidModule:setHCEService");
-        this.cb = cb;
-    }
 
-    public void pSendEvent(final String type, final String arg) {
-        Log.i(TAG, "RTNHCEAndroidModule:pSendEvent");
-        sendEvent(type, arg);
+        this.cb = cb;
+        this.hceDeselected = true;
+        this.hceBackgroundReady = false;
     }
 }

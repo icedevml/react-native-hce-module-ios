@@ -65,12 +65,12 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     }
 
     @Override
-    public void onSessionStarted() {
-        Log.i(TAG, "HCEService:onSessionStarted");
+    public void onBackgroundHCEStarted() {
+        Log.i(TAG, "HCEService:onBackgroundHCEStarted");
 
         if (cachedCAPDU != null) {
-            Log.i(TAG, "HCEService:onSessionStarted send cachedCAPDU");
-            mhceModule.pSendEvent("received", BinaryUtils.ByteArrayToHexString(cachedCAPDU));
+            Log.i(TAG, "HCEService:onBackgroundHCEStarted send cachedCAPDU");
+            mhceModule.sendBackgroundEvent("received", BinaryUtils.ByteArrayToHexString(cachedCAPDU));
             cachedCAPDU = null;
         }
     }
@@ -86,12 +86,17 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         Log.i(TAG, "HCEService:processCommandApdu");
         String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
-        if (mhceModule != null && mhceModule.checkEventEmitter()) {
-            Log.i(TAG, "HCEService:processComandApdu send event");
-            mhceModule.pSendEvent("received", capdu);
+        if (isForeground) {
+            Log.i(TAG, "HCEService:processComandApdu foreground sendEvent received");
+            mhceModule.sendEvent("received", capdu);
         } else {
-            Log.i(TAG, "HCEService:processComandApdu set cached apdu");
-            cachedCAPDU = command;
+            if (mhceModule != null && mhceModule.isHCEBackgroundHandlerReady()) {
+                Log.i(TAG, "HCEService:processComandApdu background sendBackgroundEvent received");
+                mhceModule.sendBackgroundEvent("received", capdu);
+            } else {
+                Log.i(TAG, "HCEService:processComandApdu background cache CAPDU");
+                cachedCAPDU = command;
+            }
         }
 
         return null;
@@ -113,9 +118,8 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
             ReactContext reactContext = reactHost.getCurrentReactContext();
             this.mhceModule = ((RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule"));
-
             this.mhceModule.setHCEService(this);
-            this.mhceModule.pSendEvent("readerDetected", "");
+            this.mhceModule.sendEvent("readerDetected", "");
         } else {
             ReactContext reactContext = reactHost.getCurrentReactContext();
             Log.d(TAG, "HCEService onCreate background");
@@ -125,7 +129,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
                 reactHost.addReactInstanceEventListener(this);
                 reactHost.start();
             } else {
-                onReactContextInitialized(reactContext);
+                setupRunJSTask(reactContext);
             }
         }
     }
@@ -133,14 +137,18 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     @Override
     public void onDeactivated(int reason) {
         Log.d(TAG, "HCEService onDeactivated: " + reason);
-        this.mhceModule.pSendEvent("readerDeselected", "");
+
+        if (isForeground) {
+            this.mhceModule.sendEvent("readerDeselected", "");
+        } else {
+            this.mhceModule.sendBackgroundEvent("readerDeselected", "");
+        }
+
+        this.mhceModule.setHCEService(null);
     }
 
     @Override
     public void onReactContextInitialized(@NonNull ReactContext reactContext) {
-        mhceModule = (RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule");
-        mhceModule.setHCEService(this);
-
         HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
         headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
             @Override
@@ -155,10 +163,18 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             }
         });
 
+        setupRunJSTask(reactContext);
+    }
+
+    public void setupRunJSTask(@NonNull ReactContext reactContext) {
+        mhceModule = (RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule");
+        mhceModule.setHCEService(this);
+
         UiThreadUtil.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 Log.i(TAG, "onReactContextInitialized startTask");
+                HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
                 headlessJsTaskContext.startTask(
                         new HeadlessJsTaskConfig(
                                 "handleBackgroundHCECall",

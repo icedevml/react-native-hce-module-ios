@@ -1,36 +1,21 @@
 import { Buffer } from 'buffer/';
 
-import NativeHCEModule, {HCEModuleEvent} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
+import NativeHCEModule, {
+  HCEModuleBackgroundEvent,
+} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
 
 
 export default async function run() {
-  // TODO un-duplicate code
   console.log('background:run()')
 
-  let subscription = NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
+  let subscription = NativeHCEModule?.onBackgroundEvent(async (event: HCEModuleBackgroundEvent) => {
     try {
       console.log('background:received event', event);
 
       switch (event.type) {
-        case 'readerDetected':
-          NativeHCEModule?.setSessionAlertMessage('Reader detected');
-          break;
-
         case 'readerDeselected':
-          NativeHCEModule?.setSessionAlertMessage('Lost reader');
           console.log('remove subscription');
           subscription.remove();
-          NativeHCEModule?.invalidateSession();
-          break;
-
-        case 'sessionStarted':
-          NativeHCEModule?.setSessionAlertMessage(
-            'Tap towards the reader',
-          );
-          await NativeHCEModule?.startHCE();
-          break;
-
-        case 'sessionInvalidated':
           break;
 
         case 'received':
@@ -45,28 +30,8 @@ export default async function run() {
           console.log('Sending R-APDU: ', rapdu.toString('hex'));
 
           console.log('respond apdu', NativeHCEModule?.respondAPDU);
-          console.log(NativeHCEModule?.respondAPDU(rapdu.toString('hex')));
+          await NativeHCEModule?.respondAPDU(rapdu.toString('hex'));
           console.log('responded');
-
-          /* if (capdu[0] === 0xb0 && capdu[1] === 0xff) {
-            // signal success if the C-APDU started with B0FF...
-            NativeHCEModule?.setSessionAlertMessage(
-              'Final command B0FF - OK',
-            );
-            await NativeHCEModule?.stopHCE('success');
-            NativeHCEModule?.invalidateSession();
-          } else if (capdu[0] === 0xb0 && capdu[1] === 0xee) {
-            // signal failure if the C-APDU started with B0EE...
-            NativeHCEModule?.setSessionAlertMessage(
-              'Final command B0EE - ERROR',
-            );
-            await NativeHCEModule?.stopHCE('failure');
-            NativeHCEModule?.invalidateSession();
-          } else {
-            NativeHCEModule?.setSessionAlertMessage(
-              'Received ' + capdu.slice(0, 2).toString('hex') + '...',
-            );
-          } */
           break;
       }
 
@@ -76,9 +41,9 @@ export default async function run() {
       console.error('error in event handler', err);
     }
 
-    console.log('background:end of run()')
+    console.log('background:end of onEvent');
   });
 
-  console.log('background:beginSession() await');
-  await NativeHCEModule?.beginSession();
+  await NativeHCEModule?.initBackgroundHCE();
+  console.log('background:end of run');
 }

@@ -165,7 +165,9 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             this.hceModule.sendBackgroundEvent("readerDeselected", "");
         }
 
-        this.hceModule.setHCEService(null);
+        if (this.hceModule != null) {
+            this.hceModule.setHCEService(null);
+        }
     }
 
     @Override

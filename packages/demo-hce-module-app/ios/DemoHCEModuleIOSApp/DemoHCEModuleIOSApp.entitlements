@@ -6,9 +6,7 @@
 	<true/>
 	<key>com.apple.developer.nfc.hce.iso7816.select-identifier-prefixes</key>
 	<array>
-		<string>F001020304</string>
-		<string>F00102030405</string>
-		<string>F0010203040506</string>
+		<string>D2760000850101</string>
 	</array>
 </dict>
 </plist>

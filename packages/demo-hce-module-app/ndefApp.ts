@@ -21,11 +21,6 @@ export function createNDEFApp() {
   };
 
   const cmdHandlers: Record<string, (capdu: Buffer) => Buffer> = {
-    // TODO better handler registration
-    // TODO better APDU parsing
-    // TODO custom exception to throw error codes + enum
-    // TODO dynamically construct NDEF using ndeflib
-
     "00A4": (capdu) => {
       if (capdu.slice(0, 4).compare(Buffer.from([0x00, 0xA4, 0x04, 0x00])) === 0) {
         // select applet

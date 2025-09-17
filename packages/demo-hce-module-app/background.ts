@@ -3,10 +3,12 @@ import { Buffer } from 'buffer/';
 import NativeHCEModule, {
   HCEModuleBackgroundEvent,
 } from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
+import { createNDEFApp } from './ndefApp';
 
 
 export default async function run() {
   console.debug('background:run()')
+  const ndefApp = createNDEFApp()
 
   let subscription = NativeHCEModule?.onBackgroundEvent(async (event: HCEModuleBackgroundEvent) => {
     try {
@@ -15,18 +17,7 @@ export default async function run() {
       switch (event.type) {
         case 'received':
           const capdu = Buffer.from(event.arg!, 'hex');
-          // for the demo, we just respond with the reversed C-APDU and success status 9000
-          const rapdu = Buffer.concat([
-            Buffer.from(event.arg!, 'hex').reverse(),
-            Buffer.from([0x90, 0x00]),
-          ]);
-
-          console.debug('Received C-APDU: ', capdu.toString('hex'));
-          console.debug('Sending R-APDU: ', rapdu.toString('hex'));
-
-          console.debug('respond apdu', NativeHCEModule?.respondAPDU);
-          await NativeHCEModule?.respondAPDU(rapdu.toString('hex'));
-          console.debug('responded');
+          await NativeHCEModule?.respondAPDU(ndefApp(capdu).toString("hex"));
           break;
 
         case 'readerDeselected':

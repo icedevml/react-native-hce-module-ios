@@ -1,4 +1,4 @@
-# Package: React Native HCE Module
+# React Native Package: @icedevml/react-native-host-card-emulation
 
 Host Card Emulation Module for React Native on iOS and Android platforms.
 

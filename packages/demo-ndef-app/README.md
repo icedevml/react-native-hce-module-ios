@@ -1,4 +1,6 @@
-# Demo React Native App for Native HCE Module (iOS/Android)
+# React Native Demo Application: NDEF Emulator App (for iOS/Android)
+
+Demo React Native application using `@icedevml/react-native-host-card-emulation` in order to emulate NFC Forum Type 4 Tag with an example URL NDEF.
 
 > [!NOTE]
 > Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.

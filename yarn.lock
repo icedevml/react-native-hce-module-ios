@@ -1525,9 +1525,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@icedevml/demo-hce-module-ios-app@workspace:packages/demo-hce-module-app":
+"@icedevml/demo-hce-module-ios-app@workspace:packages/demo-ndef-app":
   version: 0.0.0-use.local
-  resolution: "@icedevml/demo-hce-module-ios-app@workspace:packages/demo-hce-module-app"
+  resolution: "@icedevml/demo-hce-module-ios-app@workspace:packages/demo-ndef-app"
   dependencies:
     "@babel/core": "npm:^7.25.2"
     "@babel/preset-env": "npm:^7.25.3"
@@ -1556,9 +1556,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@icedevml/react-native-host-card-emulation@workspace:^, @icedevml/react-native-host-card-emulation@workspace:packages/native-hce-module":
+"@icedevml/react-native-host-card-emulation@workspace:^, @icedevml/react-native-host-card-emulation@workspace:packages/host-card-emulation":
   version: 0.0.0-use.local
-  resolution: "@icedevml/react-native-host-card-emulation@workspace:packages/native-hce-module"
+  resolution: "@icedevml/react-native-host-card-emulation@workspace:packages/host-card-emulation"
   peerDependencies:
     react: "*"
     react-native: "*"

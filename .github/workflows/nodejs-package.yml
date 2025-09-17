@@ -18,9 +18,11 @@ jobs:
         with:
           node-version: 22
       - run:
-          cd packages/native-hce-module
-      - run: yarn
-      - run: yarn pack
+          cd packages/host-card-emulation
+          yarn
+      - run:
+          cd packages/host-card-emulation
+          yarn pack
 
   publish-npm:
     if: github.event.release
@@ -45,7 +47,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: |
-          cd packages/native-hce-module
+          cd packages/host-card-emulation
           yarn npm publish --provenance --access public
 
   publish-gpr:
@@ -72,5 +74,5 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
       - run: |
-          cd packages/native-hce-module
+          cd packages/host-card-emulation
           yarn npm publish --provenance --access public

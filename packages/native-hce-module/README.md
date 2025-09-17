@@ -2,11 +2,16 @@
 
 Host Card Emulation Module for React Native on iOS and Android platforms.
 
+> [!NOTE]
+> Pull requests are welcome! Please [report an issue](https://github.com/icedevml/react-native-host-card-emulation/issues) if you are running into any difficulties.
+
 > [!IMPORTANT]  
 > As per Apple's policy, **Host Card Emulation feature is only available for users based in the European
 > Economic Area (EEA)** with an iPhone running iOS 17.4 or later. Applications require a special HCE entitlement
 > in order to use this feature, which is managed by Apple. Read more in the official support article:
 > "[HCE-based contactless NFC transactions for apps in the European Economic Area (EEA)](https://developer.apple.com/support/hce-transactions-in-apps/)".
+>
+> However, you can still use this package without any limitations if you only want to cover for Android implementation.
 
 ## Prerequisites
 This package was designed for React Native [New Architecture](https://reactnative.dev/architecture/landing-page) only.

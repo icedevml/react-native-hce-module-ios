@@ -2340,7 +2340,7 @@ PODS:
     - React-perflogger (= 0.81.4)
     - React-utils (= 0.81.4)
     - SocketRocket
-  - RTNHCEModuleIOS (0.4.1):
+  - RTNHCEModuleIOS (0.5.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2673,7 +2673,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 433ddfb4536948630aadd5bd925aff8a632d2fe3
   ReactCodegen: 64dbbed4e9e0264d799578ea78492479a66fba4a
   ReactCommon: 394c6b92765cf6d211c2c3f7f6bc601dffb316a6
-  RTNHCEModuleIOS: 6aa03829904932273c6f052dee1a2e6714e6c8c9
+  RTNHCEModuleIOS: 8f5664a05c9d186b00a91e2df989cb6a900a245c
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: a3ed390a19db0459bd6839823a6ac6d9c6db198d
 

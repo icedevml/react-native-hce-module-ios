@@ -5,9 +5,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Buffer } from 'buffer/';
 
 import NativeHCEModule, {HCEModuleEvent} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
+import { createNDEFApp } from './ndefApp.ts';
 
 function App(): React.JSX.Element {
   const [recentEventsList, setRecentEventsList] = React.useState<string[]>([]);
+  const ndefApp = React.useMemo(() => createNDEFApp(), []);
 
   React.useEffect(() => {
     NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
@@ -46,43 +48,14 @@ function App(): React.JSX.Element {
 
           case 'received':
             const capdu = Buffer.from(event.arg!, 'hex');
-            // for the demo, we just respond with the reversed C-APDU and success status 9000
-            const rapdu = Buffer.concat([
-              Buffer.from(event.arg!, 'hex').reverse(),
-              Buffer.from([0x90, 0x00]),
-            ]);
-
-            console.log('Received C-APDU: ', capdu.toString('hex'));
-            console.log('Sending R-APDU: ', rapdu.toString('hex'));
-
-            await NativeHCEModule?.respondAPDU(rapdu.toString('hex'));
-
-            if (capdu[0] === 0xb0 && capdu[1] === 0xff) {
-              // signal success if the C-APDU started with B0FF...
-              NativeHCEModule?.setSessionAlertMessage(
-                'Final command B0FF - OK',
-              );
-              await NativeHCEModule?.stopHCE('success');
-              NativeHCEModule?.invalidateSession();
-            } else if (capdu[0] === 0xb0 && capdu[1] === 0xee) {
-              // signal failure if the C-APDU started with B0EE...
-              NativeHCEModule?.setSessionAlertMessage(
-                'Final command B0EE - ERROR',
-              );
-              await NativeHCEModule?.stopHCE('failure');
-              NativeHCEModule?.invalidateSession();
-            } else {
-              NativeHCEModule?.setSessionAlertMessage(
-                'Received ' + capdu.slice(0, 2).toString('hex') + '...',
-              );
-            }
+            await NativeHCEModule?.respondAPDU(ndefApp(capdu).toString("hex"));
             break;
         }
       } catch (err) {
         console.error('error in event handler', err);
       }
     });
-  }, []);
+  }, [ndefApp]);
 
   async function doBeginSession() {
     try {

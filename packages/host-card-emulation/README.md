@@ -246,7 +246,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
        console.log('Received C-APDU, capdu.toString('hex'));
       
        // for the demo purposes, we always want to respond with [0x0A] + status code 0x9000 (success)
-       respondAPDU(Buffer.from([0x0A, 0x90, 0x00]).toString("hex"));
+       await respondAPDU(Buffer.from([0x0A, 0x90, 0x00]).toString("hex"));
        break;
    ```
 

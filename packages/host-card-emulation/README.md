@@ -180,7 +180,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
        console.log('Received C-APDU, capdu.toString('hex'));
    
        // for the demo purposes, we always want to respond with [0x0A] + status code 0x9000 (success)
-       await NativeHCEModule?.respondAPDU(Buffer.from([0x0A, 0x90, 0x00], "hex"));
+       await NativeHCEModule?.respondAPDU(null, Buffer.from([0x0A, 0x90, 0x00], "hex"));
        break;
    ```
    You don't have to respond to the APDU right away from within the event handler, but please remember that the reader might time out if you will be lingering with the response for too long.

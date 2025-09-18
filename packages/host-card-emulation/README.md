@@ -208,29 +208,34 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
 
 1. Register `handleBackgroundHCECall` headless task in your app's `index.js`:
    ```typescript
+   import { createBackgroundHCE } from '@icedevml/react-native-host-card-emulation/js/hceBackground';
+
    AppRegistry.registerHeadlessTask('handleBackgroundHCECall', () => {
-      return async () => {
-         return await runBackground();
+      return async (taskData) => {
+         return await runBackgroundHCETask(createBackgroundHCE(taskData.handle));
       }
    });
    ```
 2. Register onBackgroundEvent listener in your `runBackground()` function and call to `await NativeHCEModule?.initBackgroundHCE()` at the very end, after the event listener is fully set up.
    ```typescript
-   async function runBackground() {
-      let subscription = NativeHCEModule?.onBackgroundEvent(async (event: HCEModuleBackgroundEvent) => {
+   import { Buffer } from 'buffer/';
+   import {
+     ProcessBackgroundHCEFunc,
+   } from '@icedevml/react-native-host-card-emulation/js/hceBackground';
+
+   export default async function runBackgroundHCETask(processBackgroundHCE: ProcessBackgroundHCEFunc) {
+      processBackgroundHCE(async (event, respondAPDU) => {
          switch (event.type) {
             /* ... background HCE event handler here ... */
          }
       });
-   
-      await NativeHCEModule?.initBackgroundHCE();
    }
    ```
 3. Cleanup your event listener in `readerDeselected` -- this is obligatory because lack of proper cleanup will result in bugs and unexpected behavior.
    ```typescript
    case 'readerDeselected':
-       // cleanup, remove the event listener
-       subscription.remove();
+       // our application was deselected or the reader field was lost
+       // perform a cleanup of any resources here
        break;
    ```
 4. Implement the actual APDU handler that will process the C-APDU and generate a response.
@@ -241,7 +246,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
        console.log('Received C-APDU, capdu.toString('hex'));
       
        // for the demo purposes, we always want to respond with [0x0A] + status code 0x9000 (success)
-       await NativeHCEModule?.respondAPDU(Buffer.from([0x0A, 0x90, 0x00], "hex"));
+       respondAPDU(Buffer.from([0x0A, 0x90, 0x00]).toString("hex"));
        break;
    ```
 

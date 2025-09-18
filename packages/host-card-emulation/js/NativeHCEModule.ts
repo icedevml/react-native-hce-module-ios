@@ -32,6 +32,7 @@ export type HCEModuleEvent = {
 export type HCEModuleBackgroundEvent = {
   type: HCEModuleBackgroundEventType
   arg: string | null,
+  audience: string,
 }
 
 export interface Spec extends TurboModule {
@@ -73,7 +74,7 @@ export interface Spec extends TurboModule {
    */
   isSessionRunning(): boolean;
 
-  initBackgroundHCE(): Promise<void>;
+  initBackgroundHCE(handle: string): void;
 
   /**
    * iOS: Start the card emulation.
@@ -88,7 +89,7 @@ export interface Spec extends TurboModule {
   /**
    * Send R-APDU (hex-encoded string) as a response to the last received C-APDU event.
    */
-  respondAPDU(rapdu: string): Promise<void>;
+  respondAPDU(handle: string, rapdu: string): Promise<void>;
   /**
    * iOS: Checks if the card emulation is running.
    * Android: Checks if the HCE service is enabled.

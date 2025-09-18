@@ -157,13 +157,9 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     }
 
     @Override
-    public void initBackgroundHCE(Promise promise) {
+    public void initBackgroundHCE() {
         Log.d(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
-
         this.hceBackgroundReady = true;
-
-        promise.resolve(null);
-
         this.serviceCb.onBackgroundHCEInit();
     }
 

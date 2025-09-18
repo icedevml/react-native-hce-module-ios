@@ -4,12 +4,13 @@
 
 import { AppRegistry } from 'react-native';
 import App from './App';
-import runBackground from './background';
 import { name as appName } from './app.json';
+import { createBackgroundHCE } from 'packages/host-card-emulation/js/hceBackground';
+import runBackgroundHCETask from './background';
 
 AppRegistry.registerComponent(appName, () => App);
 AppRegistry.registerHeadlessTask('handleBackgroundHCECall', () => {
-  return async () => {
-    return await runBackground();
+  return async (taskData) => {
+    return await runBackgroundHCETask(createBackgroundHCE(taskData.handle));
   }
 });

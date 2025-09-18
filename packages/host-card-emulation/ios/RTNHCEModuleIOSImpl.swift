@@ -145,8 +145,13 @@ extension Data {
     }
   }
 
-  @objc public func respondAPDU(rapdu: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+  @objc public func respondAPDU(handle: NSString?, rapdu: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
     Task.init {
+      guard handle == nil else {
+        reject("err_illegal_state", "The provided handle is invalid.", nil)
+        return
+      }
+        
       guard let capdu = self.receivedCardAPDU else {
         reject("err_no_apdu_received", "There is no received APDU to respond to.", nil)
         return

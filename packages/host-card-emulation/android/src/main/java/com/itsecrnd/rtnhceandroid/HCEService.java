@@ -30,12 +30,14 @@ import com.facebook.react.jstasks.HeadlessJsTaskEventListener;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
 public class HCEService extends HostApduService implements ReactInstanceEventListener, HCEServiceCallback {
     private static final String TAG = "HCEService";
 
     private boolean isForeground;
+    private String backgroundSessionUUID;
     private RTNHCEAndroidModule hceModule;
     private byte[] pendingCAPDU;
     private volatile boolean needsResponse;
@@ -63,19 +65,35 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     }
 
     @Override
-    public void onBackgroundHCEInit() {
+    public void onBackgroundHCEInit(String handle) {
         Log.d(TAG, "HCEService:onBackgroundHCEInit");
+
+        if (handle == null && backgroundSessionUUID != null) {
+            Log.d(TAG, "HCEService:onBackgroundHCEInit foreground call to background session");
+            throw new IllegalStateException();
+        } else if (handle != null && !handle.equals(backgroundSessionUUID)) {
+            Log.d(TAG, "HCEService:onBackgroundHCEInit mismatched background session handle");
+            throw new IllegalStateException();
+        }
 
         if (pendingCAPDU != null) {
             Log.d(TAG, "HCEService:onBackgroundHCEInit send pendingCAPDU");
-            hceModule.sendBackgroundEvent("received", BinaryUtils.ByteArrayToHexString(pendingCAPDU));
+            hceModule.sendBackgroundEvent(backgroundSessionUUID, "received", BinaryUtils.ByteArrayToHexString(pendingCAPDU));
             pendingCAPDU = null;
         }
     }
 
     @Override
-    public void onRespondAPDU(String rapdu) {
+    public void onRespondAPDU(String handle, String rapdu) {
         Log.d(TAG, "HCEService:onRespondAPDU");
+
+        if (handle == null && backgroundSessionUUID != null) {
+            Log.d(TAG, "HCEService:onRespondAPDU foreground call to background session");
+            throw new IllegalStateException();
+        } else if (handle != null && !handle.equals(backgroundSessionUUID)) {
+            Log.d(TAG, "HCEService:onRespondAPDU mismatched background session handle");
+            throw new IllegalStateException();
+        }
 
         if (!needsResponse) {
             Log.d(TAG, "HCEService:onRespondAPDU not waiting for a response");
@@ -104,7 +122,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             if (hceModule != null && hceModule.isHCEBackgroundHandlerReady()) {
                 Log.d(TAG, "HCEService:processCommandApdu background sendBackgroundEvent received");
                 needsResponse = true;
-                hceModule.sendBackgroundEvent("received", capdu);
+                hceModule.sendBackgroundEvent(backgroundSessionUUID, "received", capdu);
             } else {
                 Log.d(TAG, "HCEService:processCommandApdu background pendingCAPDU");
                 needsResponse = true;
@@ -132,6 +150,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
         if (isForeground) {
             Log.d(TAG, "HCEService:onCreate foreground");
+            this.backgroundSessionUUID = null;
 
             ReactContext reactContext = reactHost.getCurrentReactContext();
 
@@ -155,6 +174,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         } else {
             ReactContext reactContext = reactHost.getCurrentReactContext();
             Log.d(TAG, "HCEService:onCreate background");
+            this.backgroundSessionUUID = UUID.randomUUID().toString();
 
             if (reactContext == null) {
                 reactHost.addReactInstanceEventListener(this);
@@ -175,7 +195,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
                 this.hceModule.sendEvent("readerDeselected", "");
             }
         } else {
-            this.hceModule.sendBackgroundEvent("readerDeselected", "");
+            this.hceModule.sendBackgroundEvent(backgroundSessionUUID, "readerDeselected", "");
         }
 
         if (this.hceModule != null) {
@@ -214,11 +234,13 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             @Override
             public void run() {
                 Log.d(TAG, "HCEService:setupRunJSTask:runOnUiThread startTask");
+                Bundle argBundle = new Bundle();
+                argBundle.putString("handle", backgroundSessionUUID);
                 HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
                 headlessJsTaskContext.startTask(
                         new HeadlessJsTaskConfig(
                                 "handleBackgroundHCECall",
-                                Arguments.fromBundle(new Bundle()),
+                                Arguments.fromBundle(argBundle),
                                 15000,
                                 false // not allowed in foreground
                         ));

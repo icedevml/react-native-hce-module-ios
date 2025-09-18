@@ -86,8 +86,8 @@
     }
 }
 
-- (void)initBackgroundHCE:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
-    reject(@"err_platform_unsupported", @"Background HCE is not supported on iOS.", nil);
+- (nonnull NSNumber *)beginBackgroundHCE:(nonnull NSString *)handle {
+    return @0;
 }
 
 - (void)startHCE:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
@@ -106,9 +106,9 @@
     }
 }
 
-- (void)respondAPDU:(nonnull NSString *)rapdu resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
+- (void)respondAPDU:(NSString * _Nullable)handle rapdu:(nonnull NSString *)rapdu resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
     if (@available(iOS 17.4, *)) {
-        return [hcemoduleios respondAPDUWithRapdu:rapdu resolve:resolve reject:reject];
+        return [hcemoduleios respondAPDUWithHandle:handle rapdu:rapdu resolve:resolve reject:reject];
     } else {
         reject(@"err_platform_unsupported", @"This iOS version does not support HCE.", nil);
     }

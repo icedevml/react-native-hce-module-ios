@@ -1,39 +1,23 @@
 import { Buffer } from 'buffer/';
 
-import NativeHCEModule, {
-  HCEModuleBackgroundEvent,
-} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
+import {
+  ProcessBackgroundHCEFunc,
+} from '@icedevml/react-native-host-card-emulation/js/hceBackground';
 import { createNDEFApp } from './ndefApp';
 
 
-export default async function run() {
-  console.debug('background:run()')
+export default async function runBackgroundHCETask(processBackgroundHCE: ProcessBackgroundHCEFunc) {
   const ndefApp = createNDEFApp()
 
-  let subscription = NativeHCEModule?.onBackgroundEvent(async (event: HCEModuleBackgroundEvent) => {
-    try {
-      console.debug('background:received event', event);
+  processBackgroundHCE(async (event, respondAPDU) => {
+    switch (event.type) {
+      case 'received':
+        const capdu = Buffer.from(event.arg!, 'hex');
+        await respondAPDU(ndefApp(capdu).toString("hex"));
+        break;
 
-      switch (event.type) {
-        case 'received':
-          const capdu = Buffer.from(event.arg!, 'hex');
-          await NativeHCEModule?.respondAPDU(ndefApp(capdu).toString("hex"));
-          break;
-
-        case 'readerDeselected':
-          console.debug('remove subscription');
-          subscription.remove();
-          break;
-      }
-
-      console.debug('end of handler');
-    } catch (err) {
-      console.error('error in background handler', err);
+      case 'readerDeselected':
+        break;
     }
-
-    console.debug('background:end of onEvent');
   });
-
-  await NativeHCEModule?.initBackgroundHCE();
-  console.debug('background:end of run');
 }

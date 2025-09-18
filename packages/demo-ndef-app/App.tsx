@@ -48,7 +48,7 @@ function App(): React.JSX.Element {
 
           case 'received':
             const capdu = Buffer.from(event.arg!, 'hex');
-            await NativeHCEModule?.respondAPDU(ndefApp(capdu).toString("hex"));
+            await NativeHCEModule?.respondAPDU(null, ndefApp(capdu).toString("hex"));
             break;
         }
       } catch (err) {

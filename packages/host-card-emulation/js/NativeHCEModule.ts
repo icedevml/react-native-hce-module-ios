@@ -74,7 +74,7 @@ export interface Spec extends TurboModule {
    */
   isSessionRunning(): boolean;
 
-  initBackgroundHCE(handle: string): void;
+  initBackgroundHCE(handle: string): boolean;
 
   /**
    * iOS: Start the card emulation.
@@ -89,7 +89,7 @@ export interface Spec extends TurboModule {
   /**
    * Send R-APDU (hex-encoded string) as a response to the last received C-APDU event.
    */
-  respondAPDU(handle: string, rapdu: string): Promise<void>;
+  respondAPDU(handle: string | null, rapdu: string): Promise<void>;
   /**
    * iOS: Checks if the card emulation is running.
    * Android: Checks if the HCE service is enabled.

@@ -57,9 +57,10 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         emitOnEvent(map);
     }
 
-    void sendBackgroundEvent(final String type, final String arg) {
+    void sendBackgroundEvent(final String audience, final String type, final String arg) {
         Log.d(TAG, "RTNHCEAndroidModule:sendBackgroundEvent");
         WritableMap map = Arguments.createMap();
+        map.putString("audience", audience);
         map.putString("type", type);
         map.putString("arg", arg);
         emitOnBackgroundEvent(map);
@@ -157,10 +158,17 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     }
 
     @Override
-    public void initBackgroundHCE() {
+    public boolean initBackgroundHCE(String handle) {
         Log.d(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
+
+        try {
+            this.serviceCb.onBackgroundHCEInit(handle);
+        } catch (IllegalStateException e) {
+            return false;
+        }
+
         this.hceBackgroundReady = true;
-        this.serviceCb.onBackgroundHCEInit();
+        return true;
     }
 
     @Override
@@ -204,7 +212,7 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
-    public void respondAPDU(String rapdu, Promise promise) {
+    public void respondAPDU(String handle, String rapdu, Promise promise) {
         Log.d(TAG, "RTNHCEAndroidModule:respondAPDU");
 
         if (!this.hceBackgroundReady) {
@@ -220,9 +228,9 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         Log.d(TAG, "respondAPDU(): Send to service");
 
         try {
-            serviceCb.onRespondAPDU(rapdu);
+            serviceCb.onRespondAPDU(handle, rapdu);
         } catch (IllegalStateException e) {
-            promise.reject("err_no_capdu", "There is no C-APDU to respond to at the time.");
+            promise.reject("err_illegal_state", "There is no C-APDU to respond to at the time or the provided handle is invalid.");
             return;
         }
 

@@ -36,7 +36,7 @@ export const createBackgroundHCE = (handle: string) => {
             }
         });
 
-        if (!NativeHCEModule.initBackgroundHCE(handle)) {
+        if (!NativeHCEModule.beginBackgroundHCE(handle)) {
             subscription.remove();
         }
     }

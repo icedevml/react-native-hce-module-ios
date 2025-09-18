@@ -158,8 +158,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     }
 
     @Override
-    public boolean initBackgroundHCE(String handle) {
-        Log.d(TAG, "RTNHCEAndroidModule:initBackgroundHCE");
+    public boolean beginBackgroundHCE(String handle) {
+        Log.d(TAG, "RTNHCEAndroidModule:beginBackgroundHCE");
 
         try {
             this.serviceCb.onBackgroundHCEInit(handle);

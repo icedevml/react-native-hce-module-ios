@@ -233,6 +233,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
    ```
 3. Cleanup your event listener in `readerDeselected` -- this is obligatory because lack of proper cleanup will result in bugs and unexpected behavior.
    ```typescript
+   // inside processBackgroundHCE handler's switch
    case 'readerDeselected':
        // our application was deselected or the reader field was lost
        // perform a cleanup of any resources here
@@ -240,6 +241,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
    ```
 4. Implement the actual APDU handler that will process the C-APDU and generate a response.
    ```typescript
+   // inside processBackgroundHCE handler's switch
    case 'received':
        // decode incoming C-APDU to bytes
        const capdu = Buffer.from(event.arg!, 'hex');

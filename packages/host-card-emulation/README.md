@@ -189,9 +189,11 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 
 If you need to utilize `NFCPresentmentIntentAssertion` for enhanced user experience, call:
 ```typescript
-NativeHCEModule.acquireExclusiveNFC();
+await NativeHCEModule.acquireExclusiveNFC();
 ```
 This function will acquire an exclusive NFC access for 15 seconds. On system services or other applications will be able to interfere with NFC during that period. For example, the NFC background tag reading will be disabled so it would not generate any distracting notifications.
+
+While both session and exclusive NFC access are active, you will receive `readerDetected` events even when the HCE emulation is not started at the time (without any explicit UI being displayed by the system). You can then make a call to `startHCE` to initiate the interaction automatically, without needing the user to click anything beforehand.
 
 This function will throw an exception if:
 * the presentment intent assertion was already acquired and is still active;

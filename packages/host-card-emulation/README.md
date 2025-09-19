@@ -128,7 +128,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 1. Subscribe to the event stream. There is a single global event stream, so you can subscribe early and remain subscribed to events for the entire application's lifetime.
    ```typescript
    useEffect(() => {
-       const subscription = NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {
+       const subscription = NativeHCEModule.onEvent(async (event: HCEModuleEvent) => {
            switch (event.type) {
                /* ... implement event handlers here ... */
            }
@@ -142,28 +142,28 @@ This module provides a uniform low-level HCE API for both mobile platforms.
    ```
 2. When user indicates that he/she wants to perform the HCE action, call the following function from the button's onClick routine:
    ```typescript
-   await NativeHCEModule?.beginSession();
+   await NativeHCEModule.beginSession();
    ```
    This will emit `sessionStarted` event right after the function call, on both iOS and Android platforms. After the session is started, you can decide to start HCE emulation right away in the event handler:
    ```typescript
-   // inside NativeHCEModule?.onEvent handler's switch
+   // inside NativeHCEModule.onEvent handler's switch
    case 'sessionStarted':
-       NativeHCEModule?.setSessionAlertMessage('Tap towards the reader');  // only for iOS, no-op in Android
-       await NativeHCEModule?.startHCE();
+       NativeHCEModule.setSessionAlertMessage('Tap towards the reader');  // only for iOS, no-op in Android
+       await NativeHCEModule.startHCE();
        break;
    ```
-   Calling `await NativeHCEModule?.startHCE()` causes:
+   Calling `await NativeHCEModule.startHCE()` causes:
    * iOS: Your smartphone will start listening for C-APDUs (Command APDUs originating from reader devices) right after that function is called, which will be additionally indicated by the operating system popping out the NFC scanning user interface prompt.
    * Android: HCE commands will be forwarded to your application from that point on. No specific user interface is displayed (you have to implement it on your own, within your app).
 3. Optionally, you can handle `readerDetected` and `readerDeselected` events to enhance user's experience.
    ```typescript
-   // inside NativeHCEModule?.onEvent handler's switch
+   // inside NativeHCEModule.onEvent handler's switch
    case 'readerDetected':
-       NativeHCEModule?.setSessionAlertMessage('Reader detected');  // only for iOS, no-op in Android
+       NativeHCEModule.setSessionAlertMessage('Reader detected');  // only for iOS, no-op in Android
        break;
 
     case 'readerDeselected':
-        NativeHCEModule?.setSessionAlertMessage('Lost reader');  // only for iOS, no-op in Android
+        NativeHCEModule.setSessionAlertMessage('Lost reader');  // only for iOS, no-op in Android
         break;
    ```
    For those events, trigger mechanisms are platform dependent:
@@ -171,16 +171,16 @@ This module provides a uniform low-level HCE API for both mobile platforms.
    * Android: The `readerDetected` event will be emitted as soon as the first matching SELECT AID command is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
 4. Receive incoming C-APDU and respond to it:
    ```typescript
-   // inside NativeHCEModule?.onEvent handler's switch
+   // inside NativeHCEModule.onEvent handler's switch
    case 'received':
-       NativeHCEModule?.setSessionAlertMessage('Keep holding the tag');  // only for iOS, no-op on Android
+       NativeHCEModule.setSessionAlertMessage('Keep holding the tag');  // only for iOS, no-op on Android
 
        // decode incoming C-APDU to bytes
        const capdu = Buffer.from(event.arg!, 'hex');
        console.log('Received C-APDU, capdu.toString('hex'));
    
        // for the demo purposes, we always want to respond with [0x0A] + status code 0x9000 (success)
-       await NativeHCEModule?.respondAPDU(null, Buffer.from([0x0A, 0x90, 0x00], "hex"));
+       await NativeHCEModule.respondAPDU(null, Buffer.from([0x0A, 0x90, 0x00]).toString("hex"));
        break;
    ```
    You don't have to respond to the APDU right away from within the event handler, but please remember that the reader might time out if you will be lingering with the response for too long.
@@ -189,7 +189,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 
 If you need to utilize `NFCPresentmentIntentAssertion` for enhanced user experience, call:
 ```typescript
-NativeHCEModule?.acquireExclusiveNFC();
+NativeHCEModule.acquireExclusiveNFC();
 ```
 This function will acquire an exclusive NFC access for 15 seconds. On system services or other applications will be able to interfere with NFC during that period. For example, the NFC background tag reading will be disabled so it would not generate any distracting notifications.
 
@@ -198,7 +198,7 @@ This function will throw an exception if:
 * you are in the cooldown period where you are not allowed to acquire the presentment intent assertion (cooldown is 15 seconds after the previous assertion had expired);
 * the feature is not supported or the device is not eligible for whatever reason;
 
-Call `NativeHCEModule?.isExclusiveNFC()` to check if exclusive NFC access is still active.
+Call `NativeHCEModule.isExclusiveNFC()` to check if exclusive NFC access is still active.
 
 ### Android: Handle HCE calls when the app is not running
 
@@ -216,7 +216,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
       }
    });
    ```
-2. Register onBackgroundEvent listener in your `runBackground()` function and call to `await NativeHCEModule?.initBackgroundHCE()` at the very end, after the event listener is fully set up.
+2. Register onBackgroundEvent listener in your `runBackground()` function and call to `await NativeHCEModule.initBackgroundHCE()` at the very end, after the event listener is fully set up.
    ```typescript
    import { Buffer } from 'buffer/';
    import {

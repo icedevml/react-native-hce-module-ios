@@ -51,19 +51,29 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
 
     void sendEvent(final String type, final String arg) {
         Log.d(TAG, "RTNHCEAndroidModule:sendEvent");
-        WritableMap map = Arguments.createMap();
-        map.putString("type", type);
-        map.putString("arg", arg);
-        emitOnEvent(map);
+
+        if (this.mEventEmitterCallback != null) {
+            WritableMap map = Arguments.createMap();
+            map.putString("type", type);
+            map.putString("arg", arg);
+            emitOnEvent(map);
+        } else {
+            Log.d(TAG, "RTNHCEAndroidModule:sendEvent missing event emitter, ignore");
+        }
     }
 
     void sendBackgroundEvent(final String audience, final String type, final String arg) {
         Log.d(TAG, "RTNHCEAndroidModule:sendBackgroundEvent");
-        WritableMap map = Arguments.createMap();
-        map.putString("audience", audience);
-        map.putString("type", type);
-        map.putString("arg", arg);
-        emitOnBackgroundEvent(map);
+
+        if (this.mEventEmitterCallback != null) {
+            WritableMap map = Arguments.createMap();
+            map.putString("audience", audience);
+            map.putString("type", type);
+            map.putString("arg", arg);
+            emitOnBackgroundEvent(map);
+        } else {
+            Log.d(TAG, "RTNHCEAndroidModule:sendBackgroundEvent missing event emitter, ignore");
+        }
     }
 
     boolean _isHCERunning() {
@@ -78,8 +88,8 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         return this.hceBackgroundReady;
     }
 
-    boolean isHCEBrokenConnection() {
-        return this.hceBrokenConnection;
+    boolean isHCEActiveConnection() {
+        return !this.hceBrokenConnection;
     }
 
     void setHCEService(HCEServiceCallback serviceCallback) {
@@ -168,6 +178,19 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
         }
 
         this.hceBackgroundReady = true;
+        return true;
+    }
+
+    @Override
+    public boolean finishBackgroundHCE(String handle) {
+        Log.d(TAG, "RTNHCEAndroidModule:finishBackgroundHCE");
+
+        try {
+            this.serviceCb.onBackgroundHCEFinish(handle);
+        } catch (IllegalStateException e) {
+            return false;
+        }
+
         return true;
     }
 

@@ -20,7 +20,6 @@ import androidx.annotation.RequiresApi;
 
 import com.facebook.react.ReactApplication;
 import com.facebook.react.ReactHost;
-import com.facebook.react.ReactInstanceEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.UiThreadUtil;
@@ -28,12 +27,13 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig;
 import com.facebook.react.jstasks.HeadlessJsTaskContext;
 import com.facebook.react.jstasks.HeadlessJsTaskEventListener;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-public class HCEService extends HostApduService implements ReactInstanceEventListener, HCEServiceCallback {
+public class HCEService extends HostApduService implements HCEServiceCallback {
     private static final String TAG = "HCEService";
 
     private boolean isForeground;
@@ -41,6 +41,13 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     private RTNHCEAndroidModule hceModule;
     private byte[] pendingCAPDU;
     private volatile boolean needsResponse;
+    private final HashMap<String, Integer> taskSessionIdMap;
+
+    public HCEService() {
+        super();
+
+        taskSessionIdMap = new HashMap<>();
+    }
 
     private boolean isAppOnForeground(Context context) {
         /*
@@ -67,6 +74,7 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
     @Override
     public void onBackgroundHCEInit(String handle) {
         Log.d(TAG, "HCEService:onBackgroundHCEInit");
+        Log.d(TAG, "HCEService:onBackgroundHCEInit:" + handle + ":" + backgroundSessionUUID);
 
         if (handle == null && backgroundSessionUUID != null) {
             Log.d(TAG, "HCEService:onBackgroundHCEInit foreground call to background session");
@@ -81,6 +89,35 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
             hceModule.sendBackgroundEvent(backgroundSessionUUID, "received", BinaryUtils.ByteArrayToHexString(pendingCAPDU));
             pendingCAPDU = null;
         }
+    }
+
+    @Override
+    public void onBackgroundHCEFinish(String handle) {
+        Log.d(TAG, "HCEService:onBackgroundHCEFinish");
+        Integer taskId = taskSessionIdMap.get(handle);
+
+        if (taskId == null) {
+            Log.d(TAG, "HCEService:onBackgroundHCEFinish unable to resolve taskId");
+            throw new IllegalArgumentException();
+        }
+
+        ReactHost reactHost = ((ReactApplication) getApplication()).getReactHost();
+
+        if (reactHost == null) {
+            Log.d(TAG, "HCEService:onBackgroundHCEFinish getReactHost() returned null");
+            throw new IllegalArgumentException();
+        }
+
+        ReactContext reactContext = reactHost.getCurrentReactContext();
+
+        if (reactContext == null) {
+            Log.d(TAG, "HCEService:onBackgroundHCEFinish getCurrentReactContext() returned null");
+            throw new IllegalArgumentException();
+        }
+
+        HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
+        headlessJsTaskContext.finishTask(taskId);
+        taskSessionIdMap.remove(handle);
     }
 
     @Override
@@ -110,13 +147,13 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         String capdu = BinaryUtils.ByteArrayToHexString(command).toUpperCase(Locale.ROOT);
 
         if (isForeground) {
-            if (hceModule._isHCERunning() && !hceModule.isHCEBrokenConnection()) {
+            if (hceModule._isHCERunning() && hceModule.isHCEActiveConnection()) {
                 Log.d(TAG, "HCEService:processCommandApdu foreground sendEvent received");
                 needsResponse = true;
                 hceModule.sendEvent("received", capdu);
             } else {
                 Log.d(TAG, "HCEService:processCommandApdu foreground respond 6999");
-                return new byte[] { (byte) 0x69, (byte) 0x99 };
+                return new byte[]{(byte) 0x69, (byte) 0x99};
             }
         } else {
             if (hceModule != null && hceModule.isHCEBackgroundHandlerReady()) {
@@ -174,13 +211,29 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         } else {
             ReactContext reactContext = reactHost.getCurrentReactContext();
             Log.d(TAG, "HCEService:onCreate background");
-            this.backgroundSessionUUID = UUID.randomUUID().toString();
+            final String useSessID = UUID.randomUUID().toString();
+            backgroundSessionUUID = useSessID;
 
             if (reactContext == null) {
-                reactHost.addReactInstanceEventListener(this);
+                reactHost.addReactInstanceEventListener(evReactContext -> {
+                    HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(evReactContext);
+                    headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
+                        @Override
+                        public void onHeadlessJsTaskStart(int i) {
+                            Log.d(TAG, "HCEService:HeadlessJsTaskEventListener:onHeadlessJsTaskStart: " + i);
+                        }
+
+                        @Override
+                        public void onHeadlessJsTaskFinish(int i) {
+                            Log.d(TAG, "HCEService:HeadlessJsTaskEventListener:onHeadlessJsTaskFinish: " + i);
+                        }
+                    });
+
+                    setupRunJSTask(evReactContext, useSessID);
+                });
                 reactHost.start();
             } else {
-                setupRunJSTask(reactContext);
+                setupRunJSTask(reactContext, useSessID);
             }
         }
     }
@@ -191,37 +244,20 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
         needsResponse = false;
 
         if (isForeground) {
-            if (this.hceModule != null && !this.hceModule.isHCEBrokenConnection()) {
+            if (this.hceModule != null && this.hceModule.isHCEActiveConnection()) {
                 this.hceModule.sendEvent("readerDeselected", "");
             }
-        } else {
-            this.hceModule.sendBackgroundEvent(backgroundSessionUUID, "readerDeselected", "");
-        }
+        } else if (backgroundSessionUUID != null) {
+            String prevBackgroundSessionUUID = backgroundSessionUUID;
+            backgroundSessionUUID = null;
 
-        if (this.hceModule != null) {
-            this.hceModule.setHCEService(null);
+            if (this.hceModule != null) {
+                this.hceModule.sendBackgroundEvent(prevBackgroundSessionUUID, "readerDeselected", "");
+            }
         }
     }
 
-    @Override
-    public void onReactContextInitialized(@NonNull ReactContext reactContext) {
-        HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
-        headlessJsTaskContext.addTaskEventListener(new HeadlessJsTaskEventListener() {
-            @Override
-            public void onHeadlessJsTaskStart(int i) {
-                Log.d(TAG, "HCEService:HeadlessJsTaskEventListener:onHeadlessJsTaskStart: " + i);
-            }
-
-            @Override
-            public void onHeadlessJsTaskFinish(int i) {
-                Log.d(TAG, "HCEService:HeadlessJsTaskEventListener:onHeadlessJsTaskFinish: " + i);
-            }
-        });
-
-        setupRunJSTask(reactContext);
-    }
-
-    public void setupRunJSTask(@NonNull ReactContext reactContext) {
+    public void setupRunJSTask(final @NonNull ReactContext reactContext, final String useSessUUID) {
         hceModule = (RTNHCEAndroidModule) reactContext.getNativeModule("NativeHCEModule");
 
         if (hceModule == null) {
@@ -230,21 +266,19 @@ public class HCEService extends HostApduService implements ReactInstanceEventLis
 
         hceModule.setHCEService(this);
 
-        UiThreadUtil.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "HCEService:setupRunJSTask:runOnUiThread startTask");
-                Bundle argBundle = new Bundle();
-                argBundle.putString("handle", backgroundSessionUUID);
-                HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
-                headlessJsTaskContext.startTask(
-                        new HeadlessJsTaskConfig(
-                                "handleBackgroundHCECall",
-                                Arguments.fromBundle(argBundle),
-                                15000,
-                                false // not allowed in foreground
-                        ));
-            }
+        UiThreadUtil.runOnUiThread(() -> {
+            Log.d(TAG, "HCEService:setupRunJSTask:runOnUiThread startTask");
+            Bundle argBundle = new Bundle();
+            argBundle.putString("handle", useSessUUID);
+            HeadlessJsTaskContext headlessJsTaskContext = Companion.getInstance(reactContext);
+            int taskId = headlessJsTaskContext.startTask(
+                    new HeadlessJsTaskConfig(
+                            "handleBackgroundHCECall",
+                            Arguments.fromBundle(argBundle),
+                            15000,
+                            false // not allowed in foreground
+                    ));
+            taskSessionIdMap.put(useSessUUID, taskId);
         });
     }
 

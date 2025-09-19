@@ -75,6 +75,7 @@ export interface Spec extends TurboModule {
   isSessionRunning(): boolean;
 
   beginBackgroundHCE(handle: string): boolean;
+  finishBackgroundHCE(handle: string): boolean;
 
   /**
    * iOS: Start the card emulation.

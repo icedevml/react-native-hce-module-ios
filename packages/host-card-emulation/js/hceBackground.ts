@@ -32,12 +32,14 @@ export const createBackgroundHCE = (handle: string) => {
             } finally {
                 if (event.type === "readerDeselected") {
                     subscription.remove();
+                    NativeHCEModule.finishBackgroundHCE(handle);
                 }
             }
         });
 
         if (!NativeHCEModule.beginBackgroundHCE(handle)) {
             subscription.remove();
+            NativeHCEModule.finishBackgroundHCE(handle);
         }
     }
 }

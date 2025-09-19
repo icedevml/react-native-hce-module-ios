@@ -117,7 +117,7 @@ Afterwards, follow the subsections below for each platform that you need to supp
 This module provides a uniform low-level HCE API for both mobile platforms.
 
 > [!NOTE]
-> Raw native module's API specification is available in [packages/host-card-emulation/js/NativeHCEModule.ts](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/host-card-emulation/js/NativeHCEModule.ts).
+> Raw native module's API specification is available in [packages/host-card-emulation/js](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/host-card-emulation/js) subdirectory.
 > Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.
 
 > [!NOTE]
@@ -254,5 +254,5 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
 
 ### More resources
 
-* [Module's API specification](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/host-card-emulation/js/NativeHCEModule.ts)
+* [Module's API specification](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/host-card-emulation/js)
 * [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-ndef-app/App.tsx)

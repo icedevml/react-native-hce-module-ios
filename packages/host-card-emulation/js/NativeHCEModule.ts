@@ -74,9 +74,6 @@ export interface Spec extends TurboModule {
    */
   isSessionRunning(): boolean;
 
-  beginBackgroundHCE(handle: string): boolean;
-  finishBackgroundHCE(handle: string): boolean;
-
   /**
    * iOS: Start the card emulation.
    * Android: Enable HCE service.
@@ -89,6 +86,7 @@ export interface Spec extends TurboModule {
   stopHCE(status: HCEModuleStopReason): Promise<void>;
   /**
    * Send R-APDU (hex-encoded string) as a response to the last received C-APDU event.
+   * Set handle=null when calling this function from foreground app.
    */
   respondAPDU(handle: string | null, rapdu: string): Promise<void>;
   /**
@@ -97,7 +95,30 @@ export interface Spec extends TurboModule {
    */
   isHCERunning(): Promise<boolean>;
 
+  /**
+   * Android: Report that the JS headless task is ready to handle HCE interaction in the background.
+   * NOTE: Don't call this API directly, use wrapper hceBackground.ts:createBackgroundHCE.
+   * See demo app or README.md for example wrapper usage.
+   */
+  beginBackgroundHCE(handle: string): boolean;
+
+  /**
+   * Android: Report the background HCE interaction was finished.
+   * NOTE: Don't call this API directly, use wrapper hceBackground.ts:createBackgroundHCE.
+   * See demo app or README.md for example wrapper usage.
+   */
+  finishBackgroundHCE(handle: string): boolean;
+
+  /**
+   * Event handler for foreground HCE interactions.
+   */
   readonly onEvent: CodegenTypes.EventEmitter<HCEModuleEvent>;
+
+  /**
+   * Event handler for background HCE interactions.
+   * NOTE: Don't subscribe to that handler directly, use wrapper hceBackground.ts:createBackgroundHCE.
+   * See demo app or README.md for example wrapper usage.
+   */
   readonly onBackgroundEvent: CodegenTypes.EventEmitter<HCEModuleBackgroundEvent>;
 }
 

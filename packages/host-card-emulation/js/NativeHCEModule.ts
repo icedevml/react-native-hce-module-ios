@@ -1,4 +1,5 @@
-import type {TurboModule, CodegenTypes} from 'react-native';
+import type {TurboModule} from 'react-native';
+import type {EventEmitter} from 'react-native/Libraries/Types/CodegenTypes';
 import {TurboModuleRegistry} from 'react-native';
 
 export type HCEModuleEventType =
@@ -112,14 +113,14 @@ export interface Spec extends TurboModule {
   /**
    * Event handler for foreground HCE interactions.
    */
-  readonly onEvent: CodegenTypes.EventEmitter<HCEModuleEvent>;
+  readonly onEvent: EventEmitter<HCEModuleEvent>;
 
   /**
    * Event handler for background HCE interactions.
    * NOTE: Don't subscribe to that handler directly, use wrapper hceBackground.ts:createBackgroundHCE.
    * See demo app or README.md for example wrapper usage.
    */
-  readonly onBackgroundEvent: CodegenTypes.EventEmitter<HCEModuleBackgroundEvent>;
+  readonly onBackgroundEvent: EventEmitter<HCEModuleBackgroundEvent>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>(

@@ -7,13 +7,13 @@ import { createNDEFType4TagApp } from './ndefType4TagApp.ts';
 
 
 export default async function runBackgroundHCETask(processBackgroundHCE: ProcessBackgroundHCEFunc) {
-  const ndefApp = createNDEFType4TagApp()
+  const [_getNDEFAppState, _resetNDEFAppState, handleCAPDU] = createNDEFType4TagApp()
 
   processBackgroundHCE(async (event, respondAPDU) => {
     switch (event.type) {
       case 'received':
         const capdu = Buffer.from(event.arg!, 'hex');
-        await respondAPDU(ndefApp(capdu).toString("hex"));
+        await respondAPDU(handleCAPDU(capdu).toString("hex"));
         break;
 
       case 'readerDeselected':

@@ -6,7 +6,7 @@
 ## Contents of this repository
 
 * [`packages/host-card-emulation` - React Native Package: @icedevml/react-native-host-card-emulation](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/host-card-emulation)
-* [`packages/demo-ndef-app` - React Native Demo Application: NDEF Emulator App (for iOS/Android)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/demo-ndef-app)
+* [`packages/demo-ndef-app` - React Native Demo Application: NDEF NFC Type 4 Tag Emulator (for iOS/Android)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/demo-ndef-app)
 
 ## Acknowledgement
 

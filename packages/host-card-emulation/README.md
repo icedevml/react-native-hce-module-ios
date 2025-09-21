@@ -117,7 +117,7 @@ Afterwards, follow the subsections below for each platform that you need to supp
 This module provides a uniform low-level HCE API for both mobile platforms.
 
 > [!NOTE]
-> Raw native module's API specification is available in [packages/host-card-emulation/js](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/host-card-emulation/js) subdirectory.
+> Raw native module's API specification is available in [packages/host-card-emulation/js](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/host-card-emulation/js) subdirectory.
 > Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.
 
 > [!NOTE]
@@ -200,21 +200,29 @@ This function will throw an exception if:
 * you are in the cooldown period where you are not allowed to acquire the presentment intent assertion (cooldown is 15 seconds after the previous assertion had expired);
 * the feature is not supported or the device is not eligible for whatever reason;
 
+You can check if you are holding an exclusive NFC access by calling:
+```typescript
+NativeHCEModule.isExclusiveNFC()
+```
+
 Whenever you don't need the exclusive NFC access anymore, call the following function to release the `NFCPresentmentIntentAssertion` object:
 ```typescript
 NativeHCEModule.releaseExclusiveNFC();
 ```
 
-Call `NativeHCEModule.isExclusiveNFC()` to check if exclusive NFC access is still active.
-
 > [!TIP]
-> Since your exclusive NFC access might time out after exceeding certain allowance period imposed by iOS, you should periodically poll
-> the `NativeHCEModule.isExclusiveNFC()` value to see if it's still granted.
+> Your exclusive NFC access might time out after exceeding certain allowance period imposed by iOS. Thus, you should periodically poll
+> the `NativeHCEModule.isExclusiveNFC()` value to see if it's still granted. You might decide to navigate into a different UI view
+> once your assertion has timed out, or indicate that in some different way.
 
 > [!TIP]
 > Use the React's [AppState](https://reactnative.dev/docs/appstate) listener to see when your app goes out to background.
-> In such event, call `NativeHCEModule.releaseExclusiveNFC()` to explicitly release `NFCPresentmentIntentAssertion` object
-> and avoid any ambiguous states. You can attempt acquiring exclusive access again when the app goes back to foreground.
+> In such event, call `NativeHCEModule.releaseExclusiveNFC()` to explicitly release the exclusive NFC assertion.
+>
+> You must do so in order to avoid running into ambigous states, since the operating system is not going to enforce your
+> exclusive NFC access anyway, as your app has gone to background.
+> 
+> You can attempt to acquire the exclusive access assertion again once your app has gone back to foreground (active state).
 
 ### Android: Handle HCE calls when the app is not running
 
@@ -270,5 +278,5 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
 
 ### More resources
 
-* [Module's API specification](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/host-card-emulation/js)
+* [Module's API specification](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/host-card-emulation/js)
 * [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-ndef-app/App.tsx)

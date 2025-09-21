@@ -1,7 +1,20 @@
 import { Buffer } from 'buffer/';
 import NDEF from './ndef-lib/index'
 
-export function createNDEFType4TagApp() {
+export interface NDEFType4TagAppState {
+  // whether the reader was trying to access NDEF contents
+  // within the current selection of the app
+  wasNDEFRead: boolean;
+}
+
+export type NDEFType4TagApp = [
+  getAppState: () => NDEFType4TagAppState,
+  resetAppState: () => void,
+  handleCAPDU: (capdu: Buffer) => Buffer,
+]
+
+export function createNDEFType4TagApp(): NDEFType4TagApp {
+  let wasNDEFRead: boolean = false;
   let currentFile: Buffer | null = null;
 
   // NFC Forum Type 4 Tag
@@ -36,6 +49,7 @@ export function createNDEFType4TagApp() {
     "00A4": (capdu) => {
       if (capdu.slice(0, 4).compare(Buffer.from([0x00, 0xA4, 0x04, 0x00])) === 0) {
         // select applet
+        wasNDEFRead = false;
         return Buffer.from([0x90, 0x00]);
       } else if (capdu.slice(0, 4).compare(Buffer.from([0x00, 0xA4, 0x00, 0x0C])) === 0) {
         // select file by ID
@@ -62,11 +76,25 @@ export function createNDEFType4TagApp() {
         return Buffer.from([0x69, 0x85]);
       }
 
+      if (currentFile === fileE104Padded && le > 2) {
+        wasNDEFRead = true;
+      }
+
       return Buffer.concat([
         currentFile.slice(offset, offset+le),
         Buffer.from([0x90, 0x00])
       ]);
     }
+  }
+
+  const getAppState = (): NDEFType4TagAppState => {
+    return {
+      wasNDEFRead
+    } as NDEFType4TagAppState;
+  }
+
+  const resetAppState = () => {
+    wasNDEFRead = false;
   }
 
   const handleAPDU = (capdu: Buffer): Buffer => {
@@ -85,7 +113,9 @@ export function createNDEFType4TagApp() {
     return cmdHandlers[prefix](capdu)
   }
 
-  return (capdu: Buffer) => {
-    return handleAPDU(capdu)
-  };
+  return [
+    getAppState,
+    resetAppState,
+    handleAPDU
+  ] as NDEFType4TagApp;
 }

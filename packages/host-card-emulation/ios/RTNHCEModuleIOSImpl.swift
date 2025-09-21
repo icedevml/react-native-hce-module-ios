@@ -38,7 +38,7 @@ extension Data {
         reject("err_nfc_reader_not_available", "Preflight check failed: NFCReaderSession.readingAvailable is false", nil)
         return
       }
-        
+
       guard CardSession.isSupported else {
         reject("err_card_session_unsupported", "Preflight check failed: CardSession.isSupported is false", nil)
         return
@@ -65,6 +65,10 @@ extension Data {
 
       resolve(nil)
     }
+  }
+
+  @objc public func releaseExclusiveNFC() {
+    self.presentmentIntent = nil
   }
 
   @objc public func isExclusiveNFC() -> Bool {
@@ -166,7 +170,7 @@ extension Data {
         reject("err_illegal_state", "The provided handle is invalid.", nil)
         return
       }
-        
+
       guard let capdu = self.receivedCardAPDU else {
         reject("err_no_apdu_received", "There is no received APDU to respond to.", nil)
         return

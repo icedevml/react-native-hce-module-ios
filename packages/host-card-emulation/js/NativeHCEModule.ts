@@ -48,6 +48,11 @@ export interface Spec extends TurboModule {
    */
   acquireExclusiveNFC(): Promise<void>;
   /**
+   * iOS: Release NFCPresentmentIntentAssertion object.
+   * Android: Not supported (no-op).
+   */
+  releaseExclusiveNFC(): void;
+  /**
    * iOS: Whether the NFCPresentmentIntentAssertion is acquired and still valid.
    * Android: Always false.
    */

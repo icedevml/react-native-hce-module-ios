@@ -50,6 +50,12 @@
     }
 }
 
+- (void)releaseExclusiveNFC {
+    if (@available(iOS 17.4, *)) {
+        [hcemoduleios releaseExclusiveNFC];
+    }
+}
+
 - (nonnull NSNumber *)isExclusiveNFC {
     if (@available(iOS 17.4, *)) {
         return [hcemoduleios isExclusiveNFC] ? @1 : @0;
@@ -87,6 +93,10 @@
 }
 
 - (nonnull NSNumber *)beginBackgroundHCE:(nonnull NSString *)handle {
+    return @0;
+}
+
+- (nonnull NSNumber *)finishBackgroundHCE:(nonnull NSString *)handle {
     return @0;
 }
 

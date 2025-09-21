@@ -200,6 +200,11 @@ This function will throw an exception if:
 * you are in the cooldown period where you are not allowed to acquire the presentment intent assertion (cooldown is 15 seconds after the previous assertion had expired);
 * the feature is not supported or the device is not eligible for whatever reason;
 
+Whenever you don't need the exclusive NFC access anymore, call the following function to release the `NFCPresentmentIntentAssertion` object:
+```typescript
+await NativeHCEModule.releaseExclusiveNFC();
+```
+
 Call `NativeHCEModule.isExclusiveNFC()` to check if exclusive NFC access is still active.
 
 ### Android: Handle HCE calls when the app is not running

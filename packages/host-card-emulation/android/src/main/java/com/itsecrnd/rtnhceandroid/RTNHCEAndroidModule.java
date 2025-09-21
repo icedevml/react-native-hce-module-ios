@@ -120,6 +120,12 @@ public class RTNHCEAndroidModule extends NativeHCEModuleSpec {
     }
 
     @Override
+    public void releaseExclusiveNFC() {
+        Log.d(TAG, "RTNHCEAndroidModule:releaseExclusiveNFC");
+        // unsupported on Android, no-op
+    }
+
+    @Override
     public boolean isExclusiveNFC() {
         Log.d(TAG, "RTNHCEAndroidModule:isExclusiveNFC");
         // unsupported on Android, always false

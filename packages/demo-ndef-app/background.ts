@@ -3,11 +3,11 @@ import { Buffer } from 'buffer/';
 import {
   ProcessBackgroundHCEFunc,
 } from '@icedevml/react-native-host-card-emulation/js/hceBackground';
-import { createNDEFApp } from './ndefApp';
+import { createNDEFType4TagApp } from './ndefType4TagApp.ts';
 
 
 export default async function runBackgroundHCETask(processBackgroundHCE: ProcessBackgroundHCEFunc) {
-  const ndefApp = createNDEFApp()
+  const ndefApp = createNDEFType4TagApp()
 
   processBackgroundHCE(async (event, respondAPDU) => {
     switch (event.type) {

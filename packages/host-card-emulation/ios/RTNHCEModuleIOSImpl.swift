@@ -34,6 +34,21 @@ extension Data {
 
   @objc public func acquireExclusiveNFC(resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
     Task.init {
+      guard NFCReaderSession.readingAvailable else {
+        reject("err_nfc_reader_not_available", "Preflight check failed: NFCReaderSession.readingAvailable is false", nil)
+        return
+      }
+        
+      guard CardSession.isSupported else {
+        reject("err_card_session_unsupported", "Preflight check failed: CardSession.isSupported is false", nil)
+        return
+      }
+
+      guard await CardSession.isEligible else {
+        reject("err_card_session_not_eligible", "Preflight check failed: CardSession.isEligible is false", nil)
+        return
+      }
+
       if self.presentmentIntent != nil && self.presentmentIntent!.isValid {
         reject("err_already_exists", "NFCPresentmentIntentAssertion already exists and is valid.", nil)
         return
@@ -44,8 +59,7 @@ extension Data {
       do {
         self.presentmentIntent = try await NFCPresentmentIntentAssertion.acquire()
       } catch (let error) {
-        // TODO exact error details here and in other places as well
-        reject("err_create_presentment", "Failed to create NFCPresentmentIntentAssertion: \(error)", nil)
+        reject("err_create_presentment_\(error)", "Failed to acquire NFCPresentmentIntentAssertion: \(error)", nil)
         return
       }
 
@@ -82,10 +96,11 @@ extension Data {
       do {
         self.cardSession = try await CardSession()
       } catch (let error) {
-        reject("err_create_card_session", "Failed to create CardSession(): \(error)", nil)
+        reject("err_create_card_session_\(error)", "Failed to create CardSession: \(error)", nil)
         return
       }
 
+      self.cardSessionInvalidated = false
       resolve(nil)
 
       do {

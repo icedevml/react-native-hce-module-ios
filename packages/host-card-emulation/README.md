@@ -121,7 +121,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 > Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.
 
 > [!NOTE]
-> See [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-ndef-app/App.tsx) example for more insignt about the library's API.
+> See [Source Code for Demo Application: NDEF NFC Type 4 Tag Emulator (for iOS/Android)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/demo-ndef-app) example for more insignt about the library's API.
 
 ### Quick start guide
 
@@ -279,4 +279,4 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
 ### More resources
 
 * [Module's API specification](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/host-card-emulation/js)
-* [Demo App's Code (Example Library Usage)](https://github.com/icedevml/react-native-host-card-emulation/blob/master/packages/demo-ndef-app/App.tsx)
+* [Source Code for Demo Application: NDEF NFC Type 4 Tag Emulator (for iOS/Android)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/demo-ndef-app)

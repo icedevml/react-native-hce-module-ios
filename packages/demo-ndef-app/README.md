@@ -1,4 +1,4 @@
-# React Native Demo Application: NDEF Emulator App (for iOS/Android)
+# React Native Demo Application: NDEF NFC Type 4 Tag Emulator (for iOS/Android)
 
 Demo React Native application using `@icedevml/react-native-host-card-emulation` in order to emulate NFC Forum Type 4 Tag with an example URL NDEF.
 

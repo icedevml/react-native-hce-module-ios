@@ -202,10 +202,19 @@ This function will throw an exception if:
 
 Whenever you don't need the exclusive NFC access anymore, call the following function to release the `NFCPresentmentIntentAssertion` object:
 ```typescript
-await NativeHCEModule.releaseExclusiveNFC();
+NativeHCEModule.releaseExclusiveNFC();
 ```
 
 Call `NativeHCEModule.isExclusiveNFC()` to check if exclusive NFC access is still active.
+
+> [!TIP]
+> Since your exclusive NFC access might time out after exceeding certain allowance period imposed by iOS, you should periodically poll
+> the `NativeHCEModule.isExclusiveNFC()` value to see if it's still granted.
+
+> [!TIP]
+> Use the React's [AppState](https://reactnative.dev/docs/appstate) listener to see when your app goes out to background.
+> In such event, call `NativeHCEModule.releaseExclusiveNFC()` to explicitly release `NFCPresentmentIntentAssertion` object
+> and avoid any ambiguous states. You can attempt acquiring exclusive access again when the app goes back to foreground.
 
 ### Android: Handle HCE calls when the app is not running
 

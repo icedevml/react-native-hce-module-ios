@@ -5,11 +5,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Buffer } from 'buffer/';
 
 import NativeHCEModule, {HCEModuleEvent} from '@icedevml/react-native-host-card-emulation/js/NativeHCEModule';
-import { createNDEFApp } from './ndefApp.ts';
+import { createNDEFType4TagApp } from './ndefType4TagApp.ts';
 
 function App(): React.JSX.Element {
   const [recentEventsList, setRecentEventsList] = React.useState<string[]>([]);
-  const ndefApp = React.useMemo(() => createNDEFApp(), []);
+  const ndefApp = React.useMemo(() => createNDEFType4TagApp(), []);
 
   React.useEffect(() => {
     NativeHCEModule?.onEvent(async (event: HCEModuleEvent) => {

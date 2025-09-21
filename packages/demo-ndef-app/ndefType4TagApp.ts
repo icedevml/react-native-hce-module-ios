@@ -1,15 +1,27 @@
 import { Buffer } from 'buffer/';
+import NDEF from './ndef-lib/index'
 
-export function createNDEFApp() {
+export function createNDEFType4TagApp() {
   let currentFile: Buffer | null = null;
 
+  // NFC Forum Type 4 Tag
+  // Capability Container
   const fileE103 = Buffer.from("001720010000FF0406E10401000000", "hex");
   const fileE103Padded = Buffer.concat([
     fileE103,
     Buffer.alloc(32 - fileE103.length)
   ]);
 
-  const fileE104 = Buffer.from("0019D101155504796F7574752E62652F6451773477395767586351", "hex");
+  // NDEF file
+  const fileE104 = Buffer.concat([
+    Buffer.alloc(2),
+    Buffer.from(
+      NDEF.encodeMessage([NDEF.uriRecord("https://www.youtube.com/watch?v=dQw4w9WgXcQ")])
+    ),
+  ]);
+  // fill in the total size of NDEF
+  fileE104.writeUInt16BE(fileE104.length - 2, 0);
+  // pad to 256 bytes (file size specified in Capability Container)
   const fileE104Padded = Buffer.concat([
     fileE104,
     Buffer.alloc(256 - fileE104.length)

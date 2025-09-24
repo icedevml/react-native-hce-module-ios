@@ -121,7 +121,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
 > Check it out in order to understand what methods you can call against the module and what are the expected parameters/return values.
 
 > [!NOTE]
-> See [Source Code for Demo Application: NDEF NFC Type 4 Tag Emulator (for iOS/Android)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/demo-ndef-app) example for more insignt about the library's API.
+> See [Source Code for Demo Application: NDEF NFC Type 4 Tag Emulator (for iOS/Android)](https://github.com/icedevml/react-native-host-card-emulation/tree/master/packages/demo-ndef-app) example for more insights about the library's API.
 
 ### Quick start guide
 
@@ -140,7 +140,7 @@ This module provides a uniform low-level HCE API for both mobile platforms.
        }
    }, []);
    ```
-2. When user indicates that he/she wants to perform the HCE action, call the following function from the button's onClick routine:
+2. When the user indicates that he/she wants to perform the HCE action, call the following function from the button's onClick routine:
    ```typescript
    await NativeHCEModule.beginSession();
    ```
@@ -163,8 +163,8 @@ This module provides a uniform low-level HCE API for both mobile platforms.
        break;
 
     case 'readerDeselected':
-        NativeHCEModule.setSessionAlertMessage('Lost reader');  // only for iOS, no-op in Android
-        break;
+       NativeHCEModule.setSessionAlertMessage('Lost reader');  // only for iOS, no-op in Android
+       break;
    ```
    For those events, trigger mechanisms are platform dependent:
    * iOS: The `readerDetected` event will be emitted as soon as the NFC reader's field presence is observed. The `readerDeselected` event will be emitted if the reader is physically disconnected or a non-matching AID is selected by the reader.
@@ -191,7 +191,7 @@ If you need to utilize `NFCPresentmentIntentAssertion` for enhanced user experie
 ```typescript
 await NativeHCEModule.acquireExclusiveNFC();
 ```
-This function will acquire an exclusive NFC access for 15 seconds. On system services or other applications will be able to interfere with NFC during that period. For example, the NFC background tag reading will be disabled so it would not generate any distracting notifications.
+This function will acquire an exclusive NFC access for 15 seconds. No system services or other applications will be able to interfere with NFC during that period. For example, the NFC background tag reading will be disabled so it would not generate any distracting notifications.
 
 While both session and exclusive NFC access are active, you will receive `readerDetected` events even when the HCE emulation is not started at the time (without any explicit UI being displayed by the system). You can then make a call to `startHCE` to initiate the interaction automatically, without needing the user to click anything beforehand.
 
@@ -240,7 +240,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
       }
    });
    ```
-2. Register onBackgroundEvent listener in your `runBackground()` function and call to `await NativeHCEModule.initBackgroundHCE()` at the very end, after the event listener is fully set up.
+2. Implement your background HCE handler by passing an event callback to `processBackgroundHCE()`:
    ```typescript
    import { Buffer } from 'buffer/';
    import {
@@ -255,7 +255,7 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
       });
    }
    ```
-3. Cleanup your event listener in `readerDeselected` -- this is obligatory because lack of proper cleanup will result in bugs and unexpected behavior.
+3. Whenever you receive `readerDeselected` event, cleanup any side effects (deallocate resources, reset the state back to initial) -- this is obligatory because lack of proper cleanup will result in bugs and unexpected behavior.
    ```typescript
    // inside processBackgroundHCE handler's switch
    case 'readerDeselected':

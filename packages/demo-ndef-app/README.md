@@ -10,7 +10,7 @@ Demo React Native application using `@icedevml/react-native-host-card-emulation`
 
 ## Prerequisites
 1. Clone the repository.
-2. Run `yarn` to install dependencies.
+2. Run `yarn` inside the project's directory to install dependencies.
 3. (iOS) Install Pods: `cd ios/ && bundle install && bundle exec pod install`. Then, open the project in XCode through the `ios/<project name>.xcworkspace` file.
 4. (iOS) Make sure to set up your Signing Team and Bundle Identifier in "Signing & Capabilities" settings section of the project.
 5. (iOS) Ensure that Host Card Emulation (HCE) entitlement with the ISO7816 AID `D2760000850101` is added to the app.

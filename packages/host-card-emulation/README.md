@@ -282,7 +282,9 @@ for instance - your app may emulate an NDEF tag even when it's not launched on t
 > Please note that under some circumstances you might find that your `runBackgroundHCETask()` is running in a few instances concurrently.
 > An example of such situation could be when you receive a C-APDU and the reader rapidly restarts the NFC field and reselects your application
 > before you manage to respond to the original command. Thus, you should not use any global variables to track the state of your app.
-> Calls to `await respondAPDU()` from stale tasks will throw an error to avoid glitching the communications.
+>
+> The library automatically identifies stale (deselected) background tasks. For such stale tasks, any subsequent calls to `await respondAPDU()`
+> will throw an error to prevent communication glitches.
 
 ### More resources
 

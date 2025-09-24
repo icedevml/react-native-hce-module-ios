@@ -3,7 +3,7 @@
 Host Card Emulation Module for React Native on iOS and Android platforms.
 
 > [!NOTE]
-> Pull requests are welcome! Please [report an issue](https://github.com/icedevml/react-native-host-card-emulation/issues) if you are running into any difficulties.
+> Pull requests are welcome! Please [report an issue](https://github.com/icedevml/react-native-host-card-emulation/issues) if you encounter any difficulties.
 
 > [!IMPORTANT]  
 > As per Apple's policy, **Host Card Emulation feature is only available for users based in the European

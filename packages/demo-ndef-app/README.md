@@ -2,6 +2,8 @@
 
 Demo React Native application using `@icedevml/react-native-host-card-emulation` in order to emulate NFC Forum Type 4 Tag with an example URL NDEF.
 
+The emulated NDEF tag is recognized out of the box when it's scanned by another iOS/Android smartphone from the home screen's level (i.e. using background tag reading). This emulation is cross-compatible, the iOS could emulate a tag that will be recognized by Android and vice versa.
+
 > [!NOTE]
 > Make sure you have completed the [React Native's Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
